@@ -5,6 +5,16 @@ import { Star } from "lucide-react";
 
 import { Link } from "react-router-dom";
 import logo from "../assets/cdaxxlogo.png";
+import CoursePlans from "../components/CoursePlans";
+import HeroCarousel from "../components/HeroCarousel";
+import LearningExperience from "../components/LearningExperience";
+import CourseSection from "../components/CourseSection";
+import TrustedBy from "../components/TrustedBy";
+import CertificationSection from "../components/CertificationSection";
+import JavaCareerCard from "../components/JavaCareerCard";
+import BuildProject from "../components/BuildProject";
+import WhyChooseUs from "../components/WhyChooseUs";
+
 
 /* GLOBAL ANIMATION VARIANTS */
 
@@ -39,9 +49,16 @@ const floatingImage = {
 /*  COMPONENT  */
 export default function HomeSections() {
   return (
-    <div className="bg-[#d8d8d8] overflow-hidden font-body">
+    <div className="bg-[#eaf9ff] overflow-hidden font-body">
+      <HeroCarousel/>
+      <LearningExperience/>
+      <BuildProject/>
+      {/* <JavaCareerCard/> */}
+      <CourseSection />
+      <CoursePlans/>
+      <CertificationSection/>
       {/*  SUCCESS STORIES  */}
-      <section className="py-24 bg-blue-50 backdrop-blur-xl">
+      <section className="py-24  backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-4xl font-bold text-center mb-14 font-heading">
             Student Success Stories
@@ -71,6 +88,8 @@ export default function HomeSections() {
           </div>
         </div>
       </section>
+      <WhyChooseUs/>
+      <TrustedBy/>
     </div>
   );
 }

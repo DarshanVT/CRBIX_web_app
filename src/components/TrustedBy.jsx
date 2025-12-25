@@ -2,8 +2,8 @@ import { motion } from "framer-motion";
 
 export default function TrustedBy() {
   return (
-    <section className=" pt-10 pb-10  bg-[#b5d5ff]  border-gray-100">
-      <div className="container mx-auto px-6">
+    <section className=" pt-10 pb-10   border-gray-100">
+      <div className="container mx-auto px-4">
 
         <motion.p
           className="text-center text-gray-500 mb-8 text-sm"
@@ -16,7 +16,7 @@ export default function TrustedBy() {
         </motion.p>
 
         <motion.div
-          className="flex justify-center items-center gap-8 md:gap-12 flex-wrap"
+          className="flex justify-center items-center gap-10 md:gap-14 flex-wrap"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}

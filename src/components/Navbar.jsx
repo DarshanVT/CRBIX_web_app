@@ -22,15 +22,13 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full">
+    <header className="sticky top-0 z-50 w-full ">
       <div
-        className={`transition-all duration-300 ${
-          scrolled
-            ? "backdrop-blur-md bg-white/90 shadow-sm border-b border-gray-200"
-            : "bg-white"
+        className={`transition-all duration-300 border-b border-black/20 ${
+          scrolled ? "bg-[#eaf9ff]" : "bg-[#eaf9ff] shadow-md"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-2 py-1 flex items-center gap-6">
+        <div className="max-w-7xl mx-auto px-2 py- flex items-center gap-6">
           {/* LEFT */}
           <Link to="/" className="flex-shrink-0">
             <img src={logo} alt="CDAXX" className="h-16 w-auto" />
