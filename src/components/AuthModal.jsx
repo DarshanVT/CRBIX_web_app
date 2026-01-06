@@ -2,11 +2,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { HiX } from "react-icons/hi";
 import React, { useState, useEffect } from "react";
 import { FaFacebookF, FaGoogle, FaLinkedinIn } from "react-icons/fa";
+import { useAuth } from "./AuthContext";
 
 // ✅ API IMPORT
 import { loginUser, registerUser } from "../Api/auth.api";
 
 export default function AuthModal({ isOpen, onClose, mode = "login" }) {
+  const { loginSuccess } = useAuth();
   const [isPanelActive, setIsPanelActive] = useState(mode === "signup");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -79,57 +81,38 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
     }));
   };
 
-  // ================= LOGIN =================
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg("");
 
-    // Validation
-    if (!formData.email || !formData.password) {
-      setErrorMsg("Please enter email and password");
-      setLoading(false);
-      return;
-    }
+const handleLoginSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setErrorMsg("");
 
-    const res = await loginUser({
-      email: formData.email,
-      password: formData.password,
-    });
-
+  if (!formData.email || !formData.password) {
+    setErrorMsg("Please enter email and password");
     setLoading(false);
+    return;
+  }
 
-   if (!res.success) {
-  setErrorMsg(res.message || "Login failed");
-  return;
-}
+  const res = await loginUser({
+    email: formData.email,
+    password: formData.password,
+  });
 
-    // SUCCESS - Save user data
-    if (res.user) {
-      localStorage.setItem("user", JSON.stringify(res.user));
-      alert(`Welcome back, ${res.user.firstName}!`);
-    } else {
-      localStorage.setItem("userEmail", formData.email);
-      alert("Login successful!");
-    }
+  setLoading(false);
 
-    // Reset form and close modal
-    setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phoneNo: "",
-      password: "",
-      cPass: "",
-    });
-    
-    onClose();
-    
-    // Reload page to update auth state
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
-  };
+  if (!res.success) {
+    setErrorMsg(res.message || "Login failed");
+    return;
+  }
+
+  //  SUCCESS - Backend se user data mil raha hai
+  if (res.user) {
+    loginSuccess(res.user); //  Pass the user object
+  } else {
+    setErrorMsg("User data not received from server");
+  }
+};
+
 
   // Blue color scheme
   const darkBlue = "#1a237e";

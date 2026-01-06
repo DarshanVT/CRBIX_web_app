@@ -1,42 +1,22 @@
 import { motion } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+
+// Images
 import start from "../assets/screens/start.PNG";
-// login img
 import login from "../assets/screens/login.PNG";
-// dashbord img
 import dashbord from "../assets/screens/dashbord.PNG";
-// Courses img
 import course from "../assets/screens/courses.PNG";
 import course1 from "../assets/screens/courseDetails.PNG";
 import course2 from "../assets/screens/videos.PNG";
-//Courses imgVideo
+
+// Video
 import videoStart from "../assets/screenVideo/Welcome.mp4";
 
 export default function LearningExperience() {
   const videoRefs = useRef([]);
-   const hoverTimeout = useRef([]);
+  const hoverTimeout = useRef([]);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
 
-  const handleMouseEnter = (index) => {
-    hoverTimeout.current[index] = setTimeout(() => {
-      const video = videoRefs.current[index];
-      if (video) {
-        video.currentTime = 0;
-        video.playbackRate = 2;
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(() => {}); 
-        }
-      }
-    }, 80); 
-  };
-
-  const handleMouseLeave = (index) => {
-    const video = videoRefs.current[index];
-    if (video) {
-      video.pause();
-      video.currentTime = 0;
-    }
-  };
   const media = [
     { img: start, video: videoStart, direction: "up" },
     { img: login, video: videoStart, direction: "down" },
@@ -46,27 +26,59 @@ export default function LearningExperience() {
     { img: course2, video: videoStart, direction: "down" },
   ];
 
+  const handleMouseEnter = (index) => {
+    setHoveredIndex(index);
+
+    hoverTimeout.current[index] = setTimeout(() => {
+      // ❗ cursor abhi bhi isi card par hona chahiye
+      if (hoveredIndex !== index) return;
+
+      const video = videoRefs.current[index];
+      if (video) {
+        video.currentTime = 0;
+        video.playbackRate = 2;
+        video.play().catch(() => {});
+      }
+    }, 120); // intentional hover delay
+  };
+
+  const handleMouseLeave = (index) => {
+    setHoveredIndex(null);
+
+    // ❗ pending hover timeout clear
+    if (hoverTimeout.current[index]) {
+      clearTimeout(hoverTimeout.current[index]);
+      hoverTimeout.current[index] = null;
+    }
+
+    const video = videoRefs.current[index];
+    if (video) {
+      video.pause();
+      video.currentTime = 0;
+    }
+  };
+
   return (
     <section className="mt-1">
-         <motion.div
+      {/* HEADING */}
+      <motion.div
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.9 }}
         viewport={{ once: false }}
         className="mt-20 max-w-3xl mx-auto text-center px-6"
       >
-        {" "}
         <h2 className="text-3xl md:text-5xl font-bold text-blue-900 mb-6">
-          {" "}
-          Best Learning Experience{" "}
-        </h2>{" "}
+          Best Learning Experience
+        </h2>
         <p className="text-gray-600 text-base md:text-lg">
-          {" "}
           Learn with structured courses, real-world projects, progress tracking,
-          and daily streaks — designed to keep you consistent and job-ready.{" "}
-        </p>{" "}
+          and daily streaks — designed to keep you consistent and job-ready.
+        </p>
       </motion.div>
-      <div className=" py-20 flex flex-wrap justify-center gap-10">
+
+      {/* MEDIA GRID */}
+      <div className="py-20 flex flex-wrap justify-center gap-10">
         {media.map((item, index) => (
           <motion.div
             key={index}
@@ -88,9 +100,10 @@ export default function LearningExperience() {
             {/* IMAGE */}
             <motion.img
               src={item.img}
-              className="w-full h-auto block"
-              whileHover={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              alt="preview"
+              className={`w-full h-auto block transition-opacity duration-300 ${
+                hoveredIndex === index ? "opacity-0" : "opacity-100"
+              }`}
             />
 
             {/* VIDEO */}
@@ -100,14 +113,14 @@ export default function LearningExperience() {
               muted
               playsInline
               loop
-              className="absolute inset-0 w-full h-full object-cover opacity-0 pointer-events-none"
-              onPlay={(e) => (e.target.style.opacity = 1)}
-              onPause={(e) => (e.target.style.opacity = 0)}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+                hoveredIndex === index ? "opacity-100" : "opacity-0"
+              }`}
+              style={{ pointerEvents: "none" }}
             />
           </motion.div>
         ))}
       </div>
-     
     </section>
   );
 }

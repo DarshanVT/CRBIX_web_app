@@ -1,41 +1,52 @@
+// src/App.js
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Footer from "./components/Footer";
 import HomeSections from "./pages/Home";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
 import { CartProvider } from "./components/CartContext";
+import { AuthProvider } from "./components/AuthContext";
 import Cart from "./pages/Cart";
-import CourseDetails from "./pages/CourseDetails";
-<<<<<<< HEAD
-import AuthModal from "./components/AuthModal";
 import PrivacyPolicy from "./pages/privacyPolicy";
-=======
-import AuthModal from "./components/AuthModel";
+import CourseDetails from "./pages/CourseDetails";
+import AuthModal from "./components/AuthModal";
+import { useAuth } from "./components/AuthContext";
+import { checkServerStatus } from "./Api/auth.api";
+import Payment from "./pages/Payment";
+import { FavoritesProvider } from "./components/FavoritesContext";
+import FavouritesPage from "./pages/FavouritesPage";
+import CoursePlans from "./components/CoursePlans";
 
->>>>>>> 1e34fb5397762df4e30f5e0c48f5ab8ce4b446f4
+function AppContent() {
+  const { authOpen, authMode, openLogin, openSignup, closeAuth } = useAuth();
 
-function App() {
-  const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState("login");
+  useEffect(() => {
+    // Check server connection on app load
+    checkServerStatus().then((isRunning) => {
+      if (!isRunning) {
+        console.error("Backend server is not running!");
+        // Optional: show alert only in development
+        if (process.env.NODE_ENV === "development") {
+          alert(
+            "⚠️ Backend server is not running. Please start the Spring Boot application on port 8080."
+          );
+        }
+      } else {
+        console.log(" Backend server is running");
+      }
+    });
+  }, []);
 
   return (
     <CartProvider>
+        <FavoritesProvider>
       <Router>
         <ScrollToTop />
 
         <div className="min-h-screen flex flex-col">
           {/* NAVBAR */}
-          <Navbar
-            openLogin={() => {
-              setAuthMode("login");
-              setAuthOpen(true);
-            }}
-            openSignup={() => {
-              setAuthMode("signup");
-              setAuthOpen(true);
-            }}
-          />
+          <Navbar openLogin={openLogin} openSignup={openSignup} />
 
           {/* PAGE CONTENT */}
           <main className="flex-1">
@@ -44,6 +55,9 @@ function App() {
               <Route path="/cart" element={<Cart />} />
               <Route path="/course/:id" element={<CourseDetails />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/plans-pricing" element={<CoursePlans />} />
+              <Route path="/favourites" element={<FavouritesPage />} /> 
+              <Route path="/payment" element={<Payment />} />
             </Routes>
           </main>
 
@@ -51,14 +65,19 @@ function App() {
           <Footer />
 
           {/* AUTH MODAL */}
-          <AuthModal
-            isOpen={authOpen}
-            onClose={() => setAuthOpen(false)}
-            mode={authMode}
-          />
+          <AuthModal isOpen={authOpen} onClose={closeAuth} mode={authMode} />
         </div>
       </Router>
+      </FavoritesProvider>
     </CartProvider>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

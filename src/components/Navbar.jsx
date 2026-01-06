@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import logo from "../assets/cdaxxlogo.png";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { HiMenu, HiX } from "react-icons/hi";
 import { HiOutlineShoppingCart, HiHeart } from "react-icons/hi";
 import { HiChevronRight } from "react-icons/hi";
+import { useAuth } from "./AuthContext";
+import { useFavorites } from "./FavoritesContext";
+import { useCart } from "./CartContext";
 
 /* EXPLORE DATA */
 const exploreData = {
@@ -37,7 +40,6 @@ const exploreData = {
   Marketing: ["Digital Marketing", "SEO", "Content Marketing"],
 };
 
-<<<<<<< HEAD
 // Logout Confirmation Modal Component
 const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
@@ -45,11 +47,11 @@ const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 z-[9999] backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="fixed inset-0 z-[10000] flex items-center justify-center px-4">
         <motion.div
@@ -62,16 +64,16 @@ const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
             {/* Warning Icon */}
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-                <svg 
-                  className="w-8 h-8 text-blue-600" 
-                  fill="none" 
-                  stroke="currentColor" 
+                <svg
+                  className="w-8 h-8 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth="2" 
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                   />
                 </svg>
@@ -82,10 +84,11 @@ const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
             <h3 className="text-xl font-bold text-center text-gray-900 mb-2">
               Are you sure?
             </h3>
-            
+
             {/* Message */}
             <p className="text-gray-600 text-center mb-6">
-              You will be logged out of your account. You'll need to sign in again to access your courses and profile.
+              You will be logged out of your account. You'll need to sign in
+              again to access your courses and profile.
             </p>
 
             {/* Buttons */}
@@ -110,52 +113,22 @@ const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
-=======
->>>>>>> 1e34fb5397762df4e30f5e0c48f5ab8ce4b446f4
-export default function Navbar({ openLogin, openSignup }) {
+export default function Navbar() {
+  //  Props remove karo, sab AuthContext se lega
+  const { isAuthenticated, user, logout, openLogin, openSignup } = useAuth();
+
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showExplore, setShowExplore] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
-  const [user, setUser] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [favoritesCount, setFavoritesCount] = useState(3); // Example count
+  const [favoritesCount, setFavoritesCount] = useState(3);
+  const { favorites } = useFavorites();
+  const navigate = useNavigate();
+  const { cart } = useCart();
 
-  // Check if user is logged in
-  useEffect(() => {
-    const checkUser = () => {
-      const userData = localStorage.getItem("user");
-      if (userData) {
-        try {
-          setUser(JSON.parse(userData));
-        } catch (error) {
-          console.error("Error parsing user data:", error);
-          localStorage.removeItem("user");
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    };
-
-    checkUser();
-    
-    const handleStorageChange = (e) => {
-      if (e.key === "user" || e.key === null) {
-        checkUser();
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("focus", checkUser);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("focus", checkUser);
-    };
-  }, []);
-
+  //  User check remove karo - AuthContext handle karega
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
@@ -165,8 +138,12 @@ export default function Navbar({ openLogin, openSignup }) {
   // Get user initials
   const getUserInitials = () => {
     if (!user) return "";
-    const firstInitial = user.firstName ? user.firstName.charAt(0).toUpperCase() : "";
-    const lastInitial = user.lastName ? user.lastName.charAt(0).toUpperCase() : "";
+    const firstInitial = user.firstName
+      ? user.firstName.charAt(0).toUpperCase()
+      : "";
+    const lastInitial = user.lastName
+      ? user.lastName.charAt(0).toUpperCase()
+      : "";
     return firstInitial + lastInitial;
   };
 
@@ -178,82 +155,42 @@ export default function Navbar({ openLogin, openSignup }) {
 
   // Actual logout function
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    setUser(null);
+    logout(); //  AuthContext ka logout use karo
     setShowLogoutConfirm(false);
     setMenuOpen(false);
-    
-    // Show success message
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
   };
 
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showUserMenu && !event.target.closest('.user-menu-container')) {
+      if (showUserMenu && !event.target.closest(".user-menu-container")) {
         setShowUserMenu(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showUserMenu]);
 
   return (
-<<<<<<< HEAD
     <>
       <header className="sticky top-0 z-50 w-full h-[60px]">
         <div className="h-full bg-[#eaf9ff]/95 backdrop-blur border-b border-black/10">
           <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between relative">
             {/* LOGO */}
-            <Link to="/dashboard">
+            <Link to="/">
               <img src={logo} alt="CDAXX" className="h-14 md:h-16" />
             </Link>
 
             {/* CENTER */}
             <div className="hidden lg:flex flex-1 items-center gap-8 mx-4">
-              <Link to="/dashboard">
+              <Link to="/">
                 <button className="font-medium px-2 py-1 hover:text-blue-600 transition-colors">
                   Home
                 </button>
               </Link>
-              
+
               {/* EXPLORE MEGA MENU */}
-=======
-    <header className="sticky top-0 z-50 w-full h-[80px]">
-      <div className="h-full bg-[#eaf9ff]/95 backdrop-blur border-b border-black/10">
-        <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between relative">
-          {/* LOGO */}
-          <Link to="/">
-            <img src={logo} alt="CDAXX" className="h-14 md:h-16" />
-          </Link>
-
-          {/* CENTER */}
-          <div className="hidden lg:flex flex-1 items-center gap-8 mx-4">
-            <Link to="/">
-              <button className="font-medium px-2 py-1 hover:text-blue-600">
-                Home
-              </button>
-            </Link>
-            
-            {/* EXPLORE MEGA MENU */}
-            <div
-              className="relative"
-              onMouseEnter={() => setShowExplore(true)}
-              onMouseLeave={() => {
-                setShowExplore(false);
-                setActiveCategory(null);
-              }}
-            >
-              <button className="font-medium px-2 py-1 hover:text-blue-600">
-                Explore
-              </button>
-
-              {/* MEGA MENU */}
->>>>>>> 1e34fb5397762df4e30f5e0c48f5ab8ce4b446f4
               <div
                 className="relative"
                 onMouseEnter={() => setShowExplore(true)}
@@ -262,7 +199,6 @@ export default function Navbar({ openLogin, openSignup }) {
                   setActiveCategory(null);
                 }}
               >
-<<<<<<< HEAD
                 <button className="font-medium px-2 py-1 hover:text-blue-600 transition-colors">
                   Explore
                 </button>
@@ -313,44 +249,6 @@ export default function Navbar({ openLogin, openSignup }) {
                       </div>
                     )}
                   </div>
-=======
-                <div className="flex">
-                  {/* LEFT – MAIN CATEGORIES */}
-                  <ul className="w-[320px] border-r">
-                    {Object.keys(exploreData).map((category) => (
-                      <li
-                        key={category}
-                        onMouseEnter={() => setActiveCategory(category)}
-                        className={`flex items-center justify-between px-5 py-3 cursor-pointer text-sm font-medium
-                          ${
-                            activeCategory === category
-                              ? "bg-blue-50 text-blue-600"
-                              : "hover:bg-blue-50"
-                          }`}
-                      >
-                        <span>{category}</span>
-                        <HiChevronRight className="text-gray-400" />
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* RIGHT – SUB CATEGORIES (ONLY ON HOVER) */}
-                  {activeCategory && (
-                    <div className="w-[320px] p-5">
-                      <ul className="space-y-3">
-                        {exploreData[activeCategory].map((sub) => (
-                          <li
-                            key={sub}
-                            className="flex items-center justify-between text-sm text-gray-700 hover:text-blue-600 cursor-pointer"
-                          >
-                            <span>{sub}</span>
-                            <HiChevronRight className="text-gray-300" />
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
->>>>>>> 1e34fb5397762df4e30f5e0c48f5ab8ce4b446f4
                 </div>
               </div>
 
@@ -366,22 +264,28 @@ export default function Navbar({ openLogin, openSignup }) {
                 </button>
               </form>
 
-              <Link to="/plans-pricing" className="font-medium hover:text-blue-600 transition-colors">
+              <Link
+                to="/plans-pricing"
+                className="font-medium hover:text-blue-600 transition-colors"
+              >
                 Plans & Pricing
               </Link>
 
-              <Link to="/privacy-policy" className="font-medium hover:text-blue-600 transition-colors">
+              <Link
+                to="/privacy-policy"
+                className="font-medium hover:text-blue-600 transition-colors"
+              >
                 Privacy & Policy
               </Link>
 
-              {/* FAVOURITES SECTION */}
+              {/* FAVOURITES */}
               <Link to="/favourites" className="relative group">
                 <div className="flex items-center gap-1 font-medium hover:text-blue-500 transition-colors">
                   <HiHeart className="text-lg" />
                   <span>Favourites</span>
-                  {favoritesCount > 0 && (
+                  {favorites.length > 0 && (
                     <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {favoritesCount}
+                      {favorites.length}
                     </span>
                   )}
                 </div>
@@ -396,13 +300,15 @@ export default function Navbar({ openLogin, openSignup }) {
                   <HiOutlineShoppingCart size={18} />
                   Cart
                   {/* Cart count badge */}
-                  <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    2
-                  </span>
+                  {cart.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {cart.length}
+                    </span>
+                  )}
                 </motion.button>
               </Link>
 
-              {user ? (
+              {isAuthenticated && user ? (
                 // USER IS LOGGED IN - Show avatar with dropdown
                 <div className="relative user-menu-container">
                   <button
@@ -417,45 +323,79 @@ export default function Navbar({ openLogin, openSignup }) {
                   {showUserMenu && (
                     <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border py-2 z-50">
                       <div className="px-4 py-3 border-b">
-                        <p className="font-semibold text-gray-900 truncate">{user.firstName} {user.lastName}</p>
-                        <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                        <p className="font-semibold text-gray-900 truncate">
+                          {user.firstName} {user.lastName}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                          {user.email}
+                        </p>
                       </div>
-                      
-                      <Link 
-                        to="/" 
+
+                      <Link
+                        to="/"
                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                          />
                         </svg>
                         Dashboard
                       </Link>
-                      
-                      <Link 
-                        to="/profile" 
+
+                      <Link
+                        to="/profile"
                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
                         </svg>
                         My Profile
                       </Link>
-                      
-                      <Link 
-                        to="/my-courses" 
+
+                      <Link
+                        to="/my-courses"
                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                          />
                         </svg>
                         My Courses
                       </Link>
-                      
-                      <Link 
-                        to="/favourites" 
+
+                      <Link
+                        to="/favourites"
                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
@@ -467,14 +407,24 @@ export default function Navbar({ openLogin, openSignup }) {
                           </span>
                         )}
                       </Link>
-                      
+
                       <div className="border-t mt-2 pt-2">
                         <button
                           onClick={handleLogoutClick}
                           className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                            />
                           </svg>
                           Logout
                         </button>
@@ -503,16 +453,18 @@ export default function Navbar({ openLogin, openSignup }) {
             </div>
 
             {/* MOBILE MENU BUTTON */}
-            <button className="lg:hidden" onClick={() => setMenuOpen(!menuOpen)}>
+            <button
+              className="lg:hidden"
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
               {menuOpen ? <HiX size={28} /> : <HiMenu size={28} />}
             </button>
           </div>
 
-<<<<<<< HEAD
           {/* MOBILE MENU */}
           {menuOpen && (
             <div className="lg:hidden px-4 pb-6 space-y-4 border-t bg-[#eaf9ff]">
-              {user ? (
+              {isAuthenticated && user ? (
                 // MOBILE: USER LOGGED IN
                 <>
                   <div className="py-4 border-b">
@@ -521,34 +473,82 @@ export default function Navbar({ openLogin, openSignup }) {
                         {getUserInitials()}
                       </div>
                       <div>
-                        <p className="font-semibold">{user.firstName} {user.lastName}</p>
+                        <p className="font-semibold">
+                          {user.firstName} {user.lastName}
+                        </p>
                         <p className="text-sm text-gray-500">{user.email}</p>
                       </div>
                     </div>
                   </div>
-                  
-                  <Link to="/dashboard" className="flex items-center gap-2 py-3 border-b" onClick={() => setMenuOpen(false)}>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+
+                  <Link
+                    to="/dashboard"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                      />
                     </svg>
                     Dashboard
                   </Link>
-                  
-                  <Link to="/profile" className="flex items-center gap-2 py-3 border-b" onClick={() => setMenuOpen(false)}>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+
+                  <Link
+                    to="/profile"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
                     </svg>
                     My Profile
                   </Link>
-                  
-                  <Link to="/my-courses" className="flex items-center gap-2 py-3 border-b" onClick={() => setMenuOpen(false)}>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+
+                  <Link
+                    to="/my-courses"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                      />
                     </svg>
                     My Courses
                   </Link>
-                  
-                  <Link to="/favourites" className="flex items-center gap-2 py-3 border-b" onClick={() => setMenuOpen(false)}>
+
+                  <Link
+                    to="/favourites"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     <HiHeart className="w-5 h-5 text-blue-500" />
                     Favourites
                     {favoritesCount > 0 && (
@@ -557,33 +557,59 @@ export default function Navbar({ openLogin, openSignup }) {
                       </span>
                     )}
                   </Link>
-                  
-                  <Link to="/explore-courses" className="flex items-center gap-2 py-3 border-b" onClick={() => setMenuOpen(false)}>
+
+                  <Link
+                    to="/explore-courses"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     Explore
                   </Link>
-                  
-                  <Link to="/plans-pricing" className="flex items-center gap-2 py-3 border-b" onClick={() => setMenuOpen(false)}>
+
+                  <Link
+                    to="/plans-pricing"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     Plans & Pricing
                   </Link>
-                  
-                  <Link to="/privacy-policy" className="flex items-center gap-2 py-3 border-b" onClick={() => setMenuOpen(false)}>
+
+                  <Link
+                    to="/privacy-policy"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     Privacy & Policy
                   </Link>
-                  
-                  <Link to="/cart" className="flex items-center gap-2 py-3 border-b" onClick={() => setMenuOpen(false)}>
+
+                  <Link
+                    to="/cart"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     <HiOutlineShoppingCart size={18} />
                     Cart
                     <span className="ml-auto bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
                       2
                     </span>
                   </Link>
-                  
+
                   <button
                     onClick={handleLogoutClick}
                     className="w-full py-3 mt-4 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-medium hover:from-red-700 hover:to-red-600 transition-all flex items-center justify-center gap-2"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
                     </svg>
                     Logout
                   </button>
@@ -591,19 +617,35 @@ export default function Navbar({ openLogin, openSignup }) {
               ) : (
                 // MOBILE: USER NOT LOGGED IN
                 <>
-                  <Link to="/explore-courses" className="flex items-center gap-2 py-3 border-b">
+                  <Link
+                    to="/explore-courses"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     Explore
                   </Link>
-                  
-                  <Link to="/plans-pricing" className="flex items-center gap-2 py-3 border-b">
+
+                  <Link
+                    to="/plans-pricing"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     Plans & Pricing
                   </Link>
-                  
-                  <Link to="/privacy-policy" className="flex items-center gap-2 py-3 border-b">
+
+                  <Link
+                    to="/privacy-policy"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     Privacy & Policy
                   </Link>
-                  
-                  <Link to="/favourites" className="flex items-center gap-2 py-3 border-b">
+
+                  <Link
+                    to="/favourites"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     <HiHeart className="w-5 h-5 text-blue-500" />
                     Favourites
                     {favoritesCount > 0 && (
@@ -612,72 +654,48 @@ export default function Navbar({ openLogin, openSignup }) {
                       </span>
                     )}
                   </Link>
-                  
-                  <Link to="/cart" className="flex items-center gap-2 py-3 border-b">
+
+                  <Link
+                    to="/cart"
+                    className="flex items-center gap-2 py-3 border-b"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     <HiOutlineShoppingCart size={18} />
                     Cart
                     <span className="ml-auto bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
                       2
                     </span>
                   </Link>
-                  
-                  <button
-                    onClick={() => {
-                      openLogin();
-                      setMenuOpen(false);
-                    }}
-                    className="w-full py-3 border rounded-xl border-blue-500 text-blue-500 font-medium hover:bg-blue-50 transition-colors"
-                  >
-                    Login
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      openSignup();
-                      setMenuOpen(false);
-                    }}
-                    className="w-full py-3 mt-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium hover:from-blue-700 hover:to-blue-600 transition-all"
-                  >
-                    Sign up
-                  </button>
+
+                  {/* LOGIN/SIGNUP BUTTONS */}
+                  <div className="flex flex-col gap-3 pt-4">
+                    <button
+                      onClick={() => {
+                        openLogin();
+                        setMenuOpen(false);
+                      }}
+                      className="w-full py-3 rounded-xl border-2 border-blue-600 text-blue-600 font-medium hover:bg-blue-50 transition-colors"
+                    >
+                      Login
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        openSignup();
+                        setMenuOpen(false);
+                      }}
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium hover:from-blue-700 hover:to-blue-600 transition-all shadow-lg"
+                    >
+                      Sign Up
+                    </button>
+                  </div>
                 </>
               )}
             </div>
           )}
-=======
-          {/* RIGHT */}
-          <div className="hidden lg:flex items-center gap-4">
-            <Link to="/cart">
-              <motion.button className="flex items-center gap-1 px-4 py-2 rounded-full border text-sm">
-                <HiOutlineShoppingCart size={18} />
-                Cart
-              </motion.button>
-            </Link>
-
-            <button
-              onClick={openLogin}
-              className="px-4 py-2 rounded-full border border-blue-500 text-blue-500 hover:bg-blue-50"
-            >
-              Login
-            </button>
-
-            <button
-              onClick={openSignup}
-              className="px-4 py-2 rounded-full bg-blue-500 text-white hover:bg-blue-600"
-            >
-              Sign up
-            </button>
-          </div>
-
-          {/* MOBILE */}
-          <button className="lg:hidden" onClick={() => setMenuOpen(!menuOpen)}>
-            {menuOpen ? <HiX size={28} /> : <HiMenu size={28} />}
-          </button>
->>>>>>> 1e34fb5397762df4e30f5e0c48f5ab8ce4b446f4
         </div>
       </header>
 
-<<<<<<< HEAD
       {/* Logout Confirmation Popup */}
       <LogoutConfirmation
         isOpen={showLogoutConfirm}
@@ -685,29 +703,5 @@ export default function Navbar({ openLogin, openSignup }) {
         onConfirm={handleLogout}
       />
     </>
-=======
-        {/* MOBILE MENU */}
-        {menuOpen && (
-          <div className="lg:hidden px-4 pb-6 space-y-4 border-t bg-[#eaf9ff]">
-            <Link to="/explore-courses">Explore</Link>
-            <Link to="/plans-pricing">Plans & Pricing</Link>
-            <Link to="/cart">Cart</Link>
-            <button
-              onClick={openLogin}
-              className="block w-full text-left py-2"
-            >
-              Login
-            </button>
-            <button
-              onClick={openSignup}
-              className="block w-full bg-blue-500 text-white text-center py-2 rounded-full"
-            >
-              Sign up
-            </button>
-          </div>
-        )}
-      </div>
-    </header>
->>>>>>> 1e34fb5397762df4e30f5e0c48f5ab8ce4b446f4
   );
 }

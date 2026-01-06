@@ -4,7 +4,7 @@ import axios from "axios";
  * Central Axios instance (LOCAL BACKEND)
  */
 const api = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: "https://cdaxx-app-yz51.onrender.com",
   headers: {
     "Content-Type": "application/json",
   },
@@ -13,7 +13,7 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error("API ERROR 👉", error.response || error.message);
+    console.error("API ERROR ", error.response || error.message);
     return Promise.reject(error);
   }
 );

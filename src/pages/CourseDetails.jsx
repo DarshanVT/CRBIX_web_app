@@ -11,162 +11,163 @@ import powerBI from "../assets/hero/powerBI.jpg";
 import net from "../assets/hero/c#.png";
 import UI_UX from "../assets/hero/UI_UX.jpg";
 import CourseContent from "../components/CourseContent";
+import { useAuth } from "../components/AuthContext";
+import { getCourseById } from "../Api/course.api";
 
-const COURSE_CONTENT = [
-   {
-    title: "Day 1 - Python Basics",
-    totalTime: "1hr 12min",
-    videos: [
-        {
-    name: "Introduction",
-    time: "5min",
-    locked: false,
-    videoUrl: "https://www.youtube.com/embed/l9AzO1FMgM8",
-  },
-  {
-    name: "Variables",
-    time: "20min",
-    locked: true,
-    videoUrl: "https://www.youtube.com/embed/l9AzO1FMgM8",
-  },
-      { name: "Data Types", time: "25min", locked: true },
-      { name: "Practice", time: "22min", locked: true },
-    ],
-  },
-  {
-    title: "Day 2 - Control Flow",
-    totalTime: "58min",
-    videos: [
-      { name: "If Else", time: "15min", locked: true },
-      { name: "Loops", time: "25min", locked: true },
-      { name: "Mini Project", time: "18min", locked: true },
-    ],
-  },
-  {
-    title: "Day 3 - OOPS Concepts",
-    totalTime: "58min",
-    videos: [
-      { name: "If Else", time: "15min" , locked: true },
-      { name: "Loops", time: "25min", locked: true },
-      { name: "Mini Project", time: "18min", locked: true },
-    ],
-  },
-  {
-    title: "Day 4 - Sets, Tuples, Dictionary",
-    totalTime: "58min",
-    videos: [
-      { name: "If Else", time: "15min", locked: true },
-      { name: "Loops", time: "25min", locked: true },
-      { name: "Mini Project", time: "18min", locked: true },
-    ],
-  },
-];
+// const COURSE_CONTENT = [
+//    {
+//     title: "Day 1 - Python Basics",
+//     totalTime: "1hr 12min",
+//     videos: [
+//         {
+//     name: "Introduction",
+//     time: "5min",
+//     locked: false,
+//     videoUrl: "https://www.youtube.com/embed/l9AzO1FMgM8",
+//   },
+//   {
+//     name: "Variables",
+//     time: "20min",
+//     locked: true,
+//     videoUrl: "https://www.youtube.com/embed/l9AzO1FMgM8",
+//   },
+//       { name: "Data Types", time: "25min", locked: true },
+//       { name: "Practice", time: "22min", locked: true },
+//     ],
+//   },
+//   {
+//     title: "Day 2 - Control Flow",
+//     totalTime: "58min",
+//     videos: [
+//       { name: "If Else", time: "15min", locked: true },
+//       { name: "Loops", time: "25min", locked: true },
+//       { name: "Mini Project", time: "18min", locked: true },
+//     ],
+//   },
+//   {
+//     title: "Day 3 - OOPS Concepts",
+//     totalTime: "58min",
+//     videos: [
+//       { name: "If Else", time: "15min" , locked: true },
+//       { name: "Loops", time: "25min", locked: true },
+//       { name: "Mini Project", time: "18min", locked: true },
+//     ],
+//   },
+//   {
+//     title: "Day 4 - Sets, Tuples, Dictionary",
+//     totalTime: "58min",
+//     videos: [
+//       { name: "If Else", time: "15min", locked: true },
+//       { name: "Loops", time: "25min", locked: true },
+//       { name: "Mini Project", time: "18min", locked: true },
+//     ],
+//   },
+// ];
 // COURSE DATA
-const COURSE_DATA = [
-    {
-      id:1,
-      title: "Java Development",
-      author: "CDax Professional's",
-      rating: "4.6",
-      reviews: "9,420",
-      price: "299",
-      originalPrice: "1999",
-      badge: "Bestseller",
-      image: java,
-    },
-    {
-      id:2,
-      title: "Python Development",
-      author: "CDax Professional's",
-      rating: "4.5",
-      reviews: "5,843",
-      price: "299",
-      originalPrice: "1599",
-      badge: "Bestseller",
-      image: python,
-    },
-    {
-      id:3,
-      title: "Complete AI and ML course ",
-      author: "CDax Professional's",
-      rating: "4.8",
-      reviews: "3,207",
-      price: "499",
-      originalPrice: "3999",
-      badge: "Premium",
-      image: AI_ML,
-    },
-    {
-      id:4,
-      title: "Flutter Android Development",
-      author: "CDax Professional's",
-      rating: "4.3",
-      reviews: "1,982",
-      price: "299",
-      originalPrice: "1499",
-      badge: "Bestseller",
-      image: Flutter,
-    },
-    {
-      id:5,
-      title: "C# and .Net Development",
-      author: "CDax Professional's",
-      rating: "4.7",
-      reviews: "4,354",
-      price: "299",
-      originalPrice: "999",
-      badge: "Bestseller",
-      image: net,
-    },
-    {
-      id:6,
-      title: "UI/UX Development",
-      author: "CDax Professional's",
-      rating: "4.5",
-      reviews: "2,633",
-      price: "299",
-      originalPrice: "1999",
-      badge: "Bestseller",
-      image: UI_UX,
-    },
-    {
-      id:7,
-      title: "SQL ",
-      author: "CDax Professional's",
-      rating: "4.3",
-      reviews: "2,649",
-      price: "299",
-      originalPrice: "1999",
-      badge: "Bestseller",
-      image: sql,
-    },
-    {
-      id:8,
-      title: "Power BI",
-      author: "CDax Professional's",
-      rating: "4.6",
-      reviews: "4,377",
-      price: "299",
-      originalPrice: "799",
-      badge: "Bestseller",
-      image: powerBI,
-    },
+// const COURSE_DATA = [
+//     {
+//       id:1,
+//       title: "Java Development",
+//       author: "CDax Professional's",
+//       rating: "4.6",
+//       reviews: "9,420",
+//       price: "299",
+//       originalPrice: "1999",
+//       badge: "Bestseller",
+//       image: java,
+//     },
+//     {
+//       id:2,
+//       title: "Python Development",
+//       author: "CDax Professional's",
+//       rating: "4.5",
+//       reviews: "5,843",
+//       price: "299",
+//       originalPrice: "1599",
+//       badge: "Bestseller",
+//       image: python,
+//     },
+//     {
+//       id:3,
+//       title: "Complete AI and ML course ",
+//       author: "CDax Professional's",
+//       rating: "4.8",
+//       reviews: "3,207",
+//       price: "499",
+//       originalPrice: "3999",
+//       badge: "Premium",
+//       image: AI_ML,
+//     },
+//     {
+//       id:4,
+//       title: "Flutter Android Development",
+//       author: "CDax Professional's",
+//       rating: "4.3",
+//       reviews: "1,982",
+//       price: "299",
+//       originalPrice: "1499",
+//       badge: "Bestseller",
+//       image: Flutter,
+//     },
+//     {
+//       id:5,
+//       title: "C# and .Net Development",
+//       author: "CDax Professional's",
+//       rating: "4.7",
+//       reviews: "4,354",
+//       price: "299",
+//       originalPrice: "999",
+//       badge: "Bestseller",
+//       image: net,
+//     },
+//     {
+//       id:6,
+//       title: "UI/UX Development",
+//       author: "CDax Professional's",
+//       rating: "4.5",
+//       reviews: "2,633",
+//       price: "299",
+//       originalPrice: "1999",
+//       badge: "Bestseller",
+//       image: UI_UX,
+//     },
+//     {
+//       id:7,
+//       title: "SQL ",
+//       author: "CDax Professional's",
+//       rating: "4.3",
+//       reviews: "2,649",
+//       price: "299",
+//       originalPrice: "1999",
+//       badge: "Bestseller",
+//       image: sql,
+//     },
+//     {
+//       id:8,
+//       title: "Power BI",
+//       author: "CDax Professional's",
+//       rating: "4.6",
+//       reviews: "4,377",
+//       price: "299",
+//       originalPrice: "799",
+//       badge: "Bestseller",
+//       image: powerBI,
+//     },
 
-  //  AUTO GENERATED (id bhi auto)
-  ...Array(8).fill(null).map((_, i) => ({
-    id: i + 5,
-    title: `AI Course ${i + 5}`,
-    author: "Udemy Instructor",
-    rating: "4.6",
-    reviews: "1,200",
-    price: "449",
-    originalPrice: "1999",
-    badge: i % 2 === 0 ? "Bestseller" : "",
-    image:
-      "https://images.unsplash.com/photo-1581092334651-ddf26d9a09d0?q=80&w=800",
-  })),
-];
-
+//   //  AUTO GENERATED (id bhi auto)
+//   ...Array(8).fill(null).map((_, i) => ({
+//     id: i + 5,
+//     title: `AI Course ${i + 5}`,
+//     author: "Udemy Instructor",
+//     rating: "4.6",
+//     reviews: "1,200",
+//     price: "449",
+//     originalPrice: "1999",
+//     badge: i % 2 === 0 ? "Bestseller" : "",
+//     image:
+//       "https://images.unsplash.com/photo-1581092334651-ddf26d9a09d0?q=80&w=800",
+//   })),
+// ];
 
 // Sample reviews
 const REVIEWS = [
@@ -244,18 +245,56 @@ function HeroCarousel({ slides }) {
 export default function CourseDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const course = COURSE_DATA.find((c) => c.id === parseInt(id));
+  const { user, isAuthenticated, openLogin } = useAuth();
   const { addToCart, cart } = useCart();
 
+  const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
 
-  useEffect(() => window.scrollTo(0, 0), []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
 
-  if (!course)
+    const loadCourse = async () => {
+      setLoading(true);
+
+      const data = await getCourseById(id, isAuthenticated ? user.id : null);
+
+      if (!data) {
+        setCourse(null);
+        setLoading(false);
+        return;
+      }
+
+      //  MAP BACKEND → UI
+      setCourse({
+        ...data,
+        image:
+          data.thumbnailUrl ||
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800",
+        author: "CDax Professional's",
+        rating: 4.6,
+        reviews: "2,500",
+        price: 299,
+        originalPrice: 1999,
+      });
+
+      setLoading(false);
+    };
+
+    loadCourse();
+  }, [id, isAuthenticated, user?.id]);
+
+  if (loading) {
+    return <div className="p-10 text-center">Loading course...</div>;
+  }
+
+  if (!course) {
     return (
       <div className="p-10 text-center text-xl font-bold">Course Not Found</div>
     );
+  }
 
   const heroSlides = [
     course.image,
@@ -264,26 +303,40 @@ export default function CourseDetails() {
   ];
 
   const handleEnroll = () => {
-    const exists = cart.find((item) => item.id === course.id);
-
-    if (exists) {
-      setPopupMessage("Course is already in your cart!");
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 4000);
-    } else {
-      addToCart({
-        id: course.id,
-        title: course.title,
-        price: course.price,
-        image: course.image,
-      });
-      setPopupMessage("Course added to cart successfully!");
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 4000);
+    if (!isAuthenticated) {
+      openLogin();
+      return;
     }
 
-    // Redirect to cart after short delay
-    setTimeout(() => navigate("/cart"), 500);
+    const exists = cart.find((item) => item.id === course.id);
+
+    // if (exists) {
+    //   setPopupMessage("Course is already in your cart!");
+    //   setShowPopup(true);
+    //   setTimeout(() => setShowPopup(false), 3000);
+    //   navigate("/cart");
+    //   return;
+    // }
+
+    if (course.purchased) {
+      navigate(`/learn/${course.id}`);
+      return;
+    }
+
+    addToCart({
+      id: course.id,
+      title: course.title,
+      price: course.price,
+      image: course.image,
+    });
+
+    setPopupMessage("Course added to cart successfully!");
+    setShowPopup(true);
+
+    setTimeout(() => {
+      setShowPopup(false);
+      navigate("/cart");
+    }, 1500);
   };
 
   return (
@@ -369,7 +422,17 @@ export default function CourseDetails() {
                 ))}
               </div>
             </div>
-            <CourseContent content={COURSE_CONTENT} />
+            <CourseContent
+              content={course.modules.map((m) => ({
+                title: m.title,
+                totalTime: `${m.videos?.length || 0} videos`,
+                videos: m.videos.map((v) => ({
+                  name: v.title,
+                  locked: v.locked,
+                  videoId: v.id,
+                })),
+              }))}
+            />
           </div>
 
           {/* RIGHT CARD */}
@@ -391,9 +454,9 @@ export default function CourseDetails() {
 
             <button
               onClick={handleEnroll}
-              className="mt-4 w-full py-3 bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-800"
+              className="mt-4 w-full py-3 bg-blue-700 text-white font-semibold rounded-lg"
             >
-              Enroll Now
+              {course.purchased ? "Continue Learning" : "Enroll Now"}
             </button>
 
             <div className="mt-4">

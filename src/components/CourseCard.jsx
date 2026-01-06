@@ -3,28 +3,44 @@ import { Star, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "./CartContext";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./AuthContext";
+import { HiHeart } from "react-icons/hi";
+import { useFavorites } from "./FavoritesContext";
+
 
 export default function CourseCard({ course, index }) {
+  const { openLogin, isAuthenticated } = useAuth();
   const [isHoverOpen, setIsHoverOpen] = useState(false);
   const [hoverLeft, setHoverLeft] = useState(false);
   const cardRef = useRef(null);
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
-  // Determine hover preview position dynamically based on viewport
+  // FAVORITES STATE
+    const { favorites, toggleFavorite } = useFavorites();
+  const isFavorite = favorites.some((c) => c.id === course.id);
+
+  // On component mount, check if this course is in favorites
+  // useEffect(() => {
+  //   const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+  //   setIsFavorite(favorites.some((c) => c.id === course.id));
+  // }, [course.id]);
+
+  // Toggle favorite status
+ const handleFavoriteClick = (e) => {
+    e.stopPropagation();
+    if (!isAuthenticated) return openLogin();
+    toggleFavorite(course);
+  };
+
+  // Hover position calculation
   useEffect(() => {
     const handleResize = () => {
       if (!cardRef.current) return;
       const rect = cardRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
-      // If the hover would overflow on the right, show on the left
-      if (rect.right + 360 + 16 > viewportWidth) {
-        setHoverLeft(true);
-      } else {
-        setHoverLeft(false);
-      }
+      setHoverLeft(rect.right + 360 + 16 > viewportWidth);
     };
-
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -41,10 +57,10 @@ export default function CourseCard({ course, index }) {
       <motion.div
         whileHover={{ y: -6, scale: 1.03 }}
         transition={{ type: "spring", stiffness: 200, damping: 15 }}
-        className="w-[260px] sm:w-[220px] md:w-[240px] lg:w-[260px] bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-xl cursor-pointer"
+        className="w-[260px] sm:w-[220px] md:w-[240px] lg:w-[260px] bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-xl cursor-pointer relative"
         onClick={() => navigate(`/course/${course.id}`)}
       >
-        {/* Image */}
+        {/* IMAGE */}
         <div className="relative overflow-hidden">
           <img
             src={course.image}
@@ -56,29 +72,33 @@ export default function CourseCard({ course, index }) {
               {course.badge}
             </span>
           )}
+
+          {/* HEART ICON */}
+<button
+          onClick={handleFavoriteClick}
+          className={`absolute top-3 right-3 p-1 rounded-full transition-colors ${
+            isFavorite ? "text-red-500" : "text-gray-300 hover:text-red-500"
+          }`}
+          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        >
+          <HiHeart size={22} />
+        </button>
         </div>
 
-        {/* Content */}
+        {/* CONTENT */}
         <div className="p-4 space-y-2">
           <h3 className="font-semibold text-sm line-clamp-2 hover:text-blue-600">
             {course.title}
           </h3>
-
           <p className="text-xs text-gray-500">{course.author}</p>
-
           <div className="flex items-center gap-1 text-xs">
-            <span className="font-semibold text-yellow-600">
-              {course.rating}
-            </span>
+            <span className="font-semibold text-yellow-600">{course.rating}</span>
             <Star size={14} fill="#fbbf24" stroke="none" />
             <span className="text-gray-400">({course.reviews})</span>
           </div>
-
           <div className="flex items-center gap-2">
             <span className="font-bold text-sm">₹{course.price}</span>
-            <span className="text-xs line-through text-gray-400">
-              {course.originalPrice}
-            </span>
+            <span className="text-xs line-through text-gray-400">{course.originalPrice}</span>
           </div>
         </div>
       </motion.div>
@@ -140,14 +160,17 @@ export default function CourseCard({ course, index }) {
             )}
 
             <button
-              className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700"
+              className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700"
               onClick={(e) => {
                 e.stopPropagation();
+
+                if (!isAuthenticated) {
+                  openLogin();
+                  return;
+                }
+
                 addToCart(course);
-                setTimeout(() => {
-                  // setShowToast(false);
-                  navigate("/cart");
-                }, 1000);
+                navigate("/cart");
               }}
             >
               Add to cart
