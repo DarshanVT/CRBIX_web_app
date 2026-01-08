@@ -101,49 +101,51 @@ export default function CourseDetails() {
     loadCourse();
   }, [id, user?.id]);
 
- const loadCourse = async () => {
+const loadCourse = async () => {
   setLoading(true);
-  try {
-    const [courseDetails, coursesList] = await Promise.all([
-      getCourseById(id, isAuthenticated ? user?.id : null),
-      getCourses(),
-    ]);
 
-    if (!courseDetails) {
+  try {
+    // 1️⃣ Always load public course list
+    const coursesList = await getCourses();
+
+    const publicCourse = coursesList?.find(
+      (c) => String(c.id) === String(id)
+    );
+
+    if (!publicCourse) {
       setCourse(null);
       return;
     }
 
-    // 🔥 price wale course ko list se dhoondo
-    const courseFromList = coursesList?.find(
-      (c) => String(c.id) === String(id)
-    );
+    // 2️⃣ If NOT logged in → show public details only
+    if (!isAuthenticated) {
+      setCourse({
+        ...publicCourse,
+        purchased: false,
+        modules: [], // 🔒 no content for public
+        author: publicCourse.instructor || "CDax Professionals",
+        rating: publicCourse.rating ?? 4.5,
+        reviews: publicCourse.reviewCount ?? "1,000+",
+        image: publicCourse.thumbnailUrl?.startsWith("http")
+          ? publicCourse.thumbnailUrl
+          : `https://cdaxx-backend.onrender.com/${publicCourse.thumbnailUrl}`,
+      });
+      return;
+    }
 
-    const purchased =
-      Boolean(courseDetails.purchased) ||
-      Boolean(courseDetails.isPurchased);
+    // 3️⃣ Logged in → fetch full course
+    const courseDetails = await getCourseById(id, user.id);
 
     setCourse({
       ...courseDetails,
-
-      purchased,
-
-      // ✅ PRICE FROM getCourses()
-      price: courseFromList?.price,
-      originalPrice: courseFromList?.originalPrice,
-
-      image: courseDetails.thumbnailUrl
-        ? courseDetails.thumbnailUrl.startsWith("http")
-          ? courseDetails.thumbnailUrl
-          : `https://cdaxx-backend.onrender.com/${courseDetails.thumbnailUrl.replace(
-              /^\/?/,
-              ""
-            )}`
-        : "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800",
-
-      author: courseDetails.instructor || "CDax Professionals",
-      rating: courseDetails.rating ?? 4.5,
-      reviews: courseDetails.reviewCount ?? "1,000+",
+      price: publicCourse.price,
+      originalPrice: publicCourse.originalPrice,
+      image: courseDetails.thumbnailUrl?.startsWith("http")
+        ? courseDetails.thumbnailUrl
+        : `https://cdaxx-backend.onrender.com/${courseDetails.thumbnailUrl}`,
+      purchased: Boolean(
+        courseDetails.purchased || courseDetails.isPurchased
+      ),
     });
   } catch (err) {
     console.error("Course load error:", err);
@@ -152,6 +154,7 @@ export default function CourseDetails() {
     setLoading(false);
   }
 };
+
   const handleEnroll = () => {
     if (!isAuthenticated) {
       openLogin();

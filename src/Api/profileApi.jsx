@@ -1,16 +1,52 @@
-import api from "src/Api/api.jsx ";
+import api from "./api";
 
-export const fetchProfileApi = async () => {
-  const res = await api.get("/profile/me");
-  return res.data;
+
+export const updateUserProfile = async (userId, payload) => {
+  try {
+    const res = await api.put(
+      `/api/users/${userId}`,
+      payload
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Profile update failed", err);
+    throw err;
+  }
 };
 
-export const updateProfileApi = async (profile) => {
-  const res = await api.put("/profile", profile);
-  return res.data;
+/* ================= SUBSCRIBED COURSES ================= */
+export const getSubscribedCourses = async (userId) => {
+  // 🔒 Guard: user not logged in
+  if (!userId) {
+    console.warn("getSubscribedCourses called without userId");
+    return [];
+  }
+
+  try {
+    const res = await api.get(`/api/courses/subscribed/${userId}`);
+    return res.data ?? [];
+  } catch (err) {
+    console.error("Subscribed courses error", err);
+    return [];
+  }
 };
 
-export const fetchStreakApi = async () => {
-  const res = await api.get("/profile/streaks");
-  return res.data;
+/* ================= STREAK DATA ================= */
+export const getCourseStreak = async (courseId, userId) => {
+  // 🔒 Guard: user not logged in
+  if (!userId || !courseId) {
+    console.warn("getCourseStreak called without userId/courseId");
+    return null;
+  }
+
+  try {
+    const res = await api.get(
+      `/api/streak/course/${courseId}`,
+      { params: { userId } }
+    );
+    return res.data ?? null;
+  } catch (err) {
+    console.error("Streak fetch error", err);
+    return null;
+  }
 };

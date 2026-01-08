@@ -30,6 +30,7 @@ import CourseGridSection from "./components/Courses/CourseSection";
 import CoursePlans from "./components/Courses/CoursePlans";
 import FavouritesPage from "./pages/FavouritesPage"
 import AuthModal from "./components/Login/AuthModal";
+
 function AppContent() {
   const { authOpen, authMode, openLogin, openSignup, closeAuth } = useAuth();
 

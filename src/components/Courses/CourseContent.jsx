@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  ChevronDown,
-  ChevronUp,
-  Lock,
-  Play,
-  Check,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, Lock, Play, Check } from "lucide-react";
 import { useAuth } from "../Login/AuthContext";
 
 /* -------------------- HELPERS -------------------- */
@@ -35,6 +29,23 @@ export default function CourseContent({ course }) {
 
   const [openModuleIndex, setOpenModuleIndex] = useState(null);
   const [openVideo, setOpenVideo] = useState(null);
+  
+
+  if (!isAuthenticated) {
+  return (
+    <div className="mt-10 p-6 bg-yellow-50 border rounded-lg text-center">
+      <p className="font-semibold text-gray-800 mb-2">
+        Please login to view course content
+      </p>
+      <button
+        onClick={openLogin}
+        className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg"
+      >
+        Login to Continue
+      </button>
+    </div>
+  );
+}
 
   /* -------------------- VIDEO CLICK -------------------- */
   const handleVideoClick = (video) => {
@@ -51,9 +62,7 @@ export default function CourseContent({ course }) {
   /* -------------------- RENDER -------------------- */
   if (!course?.modules?.length) {
     return (
-      <div className="mt-6 text-gray-500">
-        No course content available.
-      </div>
+      <div className="mt-6 text-gray-500">No course content available.</div>
     );
   }
 
@@ -65,11 +74,10 @@ export default function CourseContent({ course }) {
         <div key={module.id} className="border rounded-lg mb-3">
           {/* MODULE HEADER */}
           <div
-            onClick={() =>
-              setOpenModuleIndex(
-                openModuleIndex === mi ? null : mi
-              )
-            }
+            onClick={() => {
+              if (module.isLocked) return;
+              setOpenModuleIndex(openModuleIndex === mi ? null : mi);
+            }}
             className={`flex justify-between items-center p-4 cursor-pointer ${
               module.isLocked ? "bg-gray-200" : "bg-gray-100"
             }`}
@@ -135,20 +143,13 @@ export default function CourseContent({ course }) {
       {openVideo && (
         <div className="fixed inset-0 bg-black z-50 flex flex-col">
           <div className="h-12 flex items-center px-4 text-white bg-black">
-            <button onClick={() => setOpenVideo(null)}>
-              ← Back
-            </button>
+            <button onClick={() => setOpenVideo(null)}>← Back</button>
 
-            <span className="ml-4 text-sm truncate">
-              {openVideo.title}
-            </span>
+            <span className="ml-4 text-sm truncate">{openVideo.title}</span>
           </div>
 
           <iframe
-            src={convertToEmbed(
-              openVideo.videoUrl,
-              openVideo.youtubeId
-            )}
+            src={convertToEmbed(openVideo.videoUrl, openVideo.youtubeId)}
             className="w-full flex-1"
             allow="autoplay; fullscreen"
             allowFullScreen

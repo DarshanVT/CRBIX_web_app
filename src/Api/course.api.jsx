@@ -31,8 +31,9 @@ export const getDashboardCourses = async (userId) => {
 export const getCourseById = async (courseId, userId) => {
   try {
     const res = await api.get(`/api/courses/${courseId}`, {
-      params: { userId },
+      params: userId ? { userId } : {}, // 👈 IMPORTANT
     });
+
     return res.data?.data ?? null;
   } catch (err) {
     console.error("Course fetch failed:", err);
