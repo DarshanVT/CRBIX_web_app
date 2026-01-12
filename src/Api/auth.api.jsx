@@ -1,9 +1,7 @@
 const API_BASE = "https://cdaxx-backend.onrender.com/api/auth";
 
 /**
- * Register a new user
- * @param {Object} userData 
- * @returns {Promise<Object>} 
+ * Register a new user (UPDATED for JWT)
  */
 export const registerUser = async (userData) => {
   try {
@@ -11,12 +9,12 @@ export const registerUser = async (userData) => {
       firstName: userData.firstName,
       lastName: userData.lastName,
       email: userData.email,
-      mobile: userData.phoneNo,  
+      phoneNumber: userData.phoneNo,  // CHANGED: "mobile" → "phoneNumber"
       password: userData.password,
-      cpassword: userData.cPass  
+      // REMOVED: cpassword - backend doesn't have this field
     };
 
-    const response = await fetch(`${API_BASE}/register`, {
+    const response = await fetch(`${API_BASE}/jwt/register`, {  // CHANGED: /register → /jwt/register
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -25,6 +23,15 @@ export const registerUser = async (userData) => {
     });
 
     const data = await response.json();
+    
+    // Store token if registration successful
+    if (data.success && data.token) {
+      localStorage.setItem('auth_token', data.token);
+      if (data.refreshToken) {
+        localStorage.setItem('refresh_token', data.refreshToken);
+      }
+    }
+    
     return data;
 
   } catch (error) {
@@ -37,13 +44,11 @@ export const registerUser = async (userData) => {
 };
 
 /**
- * Login user
- * @param {Object} credentials 
- * @returns {Promise<Object>} 
+ * Login user (UPDATED for JWT)
  */
 export const loginUser = async (credentials) => {
   try {
-    const response = await fetch(`${API_BASE}/login`, {
+    const response = await fetch(`${API_BASE}/jwt/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -55,6 +60,26 @@ export const loginUser = async (credentials) => {
     });
 
     const data = await response.json();
+    
+    if (data.success && data.token) {
+      localStorage.setItem('auth_token', data.token);
+      
+      // ✅ CRITICAL: Store user ID
+      if (data.user && data.user.id) {
+        localStorage.setItem('user_id', data.user.id.toString());
+        localStorage.setItem('user_info', JSON.stringify(data.user));
+        console.log('✅ User ID stored:', data.user.id);
+      } else if (data.userId) {
+        // Some APIs return userId directly
+        localStorage.setItem('user_id', data.userId.toString());
+        console.log('✅ User ID stored:', data.userId);
+      }
+      
+      if (data.refreshToken) {
+        localStorage.setItem('refresh_token', data.refreshToken);
+      }
+    }
+    
     return data;
 
   } catch (error) {
@@ -67,10 +92,114 @@ export const loginUser = async (credentials) => {
 };
 
 /**
- * Get user by email
- * @param {string} email 
- * @returns {Promise<Object>} 
+ * Get current user profile (NEW - using JWT)
  */
+export const getCurrentUser = async () => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    
+    const response = await fetch(`${API_BASE}/jwt/me`, {  // NEW endpoint
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+    return data;
+
+  } catch (error) {
+    console.error('Get current user error:', error);
+    return {
+      success: false,
+      message: 'Failed to get user data'
+    };
+  }
+};
+
+/**
+ * Get user profile (NEW - uses the profile endpoint)
+ */
+export const getUserProfile = async () => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    
+    const response = await fetch(`${API_BASE}/profile/me`, {  // Use this endpoint
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+    return data;
+
+  } catch (error) {
+    console.error('Get profile error:', error);
+    return {
+      success: false,
+      message: 'Failed to get profile'
+    };
+  }
+};
+
+/**
+ * Update user profile
+ */
+export const updateProfile = async (profileData) => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    
+    const response = await fetch(`${API_BASE}/profile/update`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(profileData)
+    });
+
+    const data = await response.json();
+    return data;
+
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return {
+      success: false,
+      message: 'Failed to update profile'
+    };
+  }
+};
+
+/**
+ * Validate JWT token
+ */
+export const validateToken = async (token) => {
+  try {
+    const response = await fetch(`${API_BASE}/jwt/validate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token })
+    });
+
+    const data = await response.json();
+    return data;
+
+  } catch (error) {
+    console.error('Token validation error:', error);
+    return {
+      success: false,
+      valid: false,
+      message: 'Token validation failed'
+    };
+  }
+};
+
+// KEEP THESE OLD FUNCTIONS (they might still work)
 export const getUserByEmail = async (email) => {
   try {
     const response = await fetch(`${API_BASE}/getUserByEmail?email=${encodeURIComponent(email)}`);
@@ -82,11 +211,6 @@ export const getUserByEmail = async (email) => {
   }
 };
 
-/**
- * Get first name by email
- * @param {string} email 
- * @returns {Promise<string>} 
- */
 export const getFirstName = async (email) => {
   try {
     const response = await fetch(`${API_BASE}/firstName?email=${encodeURIComponent(email)}`);
@@ -98,10 +222,6 @@ export const getFirstName = async (email) => {
   }
 };
 
-/**
- * Check if server is running
- * @returns {Promise<boolean>}
- */
 export const checkServerStatus = async () => {
   try {
     const response = await fetch(`${API_BASE}/test`);

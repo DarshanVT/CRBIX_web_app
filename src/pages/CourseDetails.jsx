@@ -6,7 +6,7 @@ import { useAuth } from "../components/Login/AuthContext";
 import { getCourseById, getCourses } from "../Api/course.api";
 import CourseContent from "../components/Courses/CourseContent";
 
-// Sample reviews
+/* ------------------ Static Reviews ------------------ */
 const REVIEWS = [
   {
     name: "Priya Sharma",
@@ -31,7 +31,7 @@ const REVIEWS = [
   },
 ];
 
-// HERO CAROUSEL - New simpler version
+/* ------------------ Hero Carousel ------------------ */
 function HeroCarousel({ slides }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -46,43 +46,36 @@ function HeroCarousel({ slides }) {
     return () => clearInterval(id);
   }, [slides.length, isPaused]);
 
-  const goToSlide = (index) => {
-    setCurrentIndex(index);
-  };
-
   return (
     <div
       className="relative w-full h-[250px] sm:h-[300px] md:h-[360px] lg:h-[420px] overflow-hidden rounded-t-2xl"
-      onMouseEnter={() => setIsPaused(true)} // 🛑 pause
-      onMouseLeave={() => setIsPaused(false)} // ▶ resume
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Image */}
       <img
         src={slides[currentIndex]}
-        alt={`Slide ${currentIndex}`}
+        alt="course hero"
         className="w-full h-full object-cover transition-all duration-700"
       />
 
-      {/* Clickable Dots */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
         {slides.map((_, i) => (
           <button
             key={i}
-            onClick={() => goToSlide(i)}
-            className={`w-2 h-2 rounded-full transition-all duration-300
-              ${
-                i === currentIndex
-                  ? "bg-white scale-125"
-                  : "bg-white/50 hover:bg-white"
-              }`}
-            aria-label={`Go to slide ${i + 1}`}
+            onClick={() => setCurrentIndex(i)}
+            className={`w-2 h-2 rounded-full ${
+              i === currentIndex
+                ? "bg-white scale-125"
+                : "bg-white/50 hover:bg-white"
+            }`}
           />
         ))}
       </div>
     </div>
   );
 }
-// COURSE DETAILS PAGE
+
+/* ------------------ Course Details Page ------------------ */
 export default function CourseDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -93,98 +86,63 @@ export default function CourseDetails() {
   const [loading, setLoading] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
+  const [startLearning, setStartLearning] = useState(false);
 
   const alreadyInCart = cart.some((c) => c.id === course?.id);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     loadCourse();
-  }, [id, user?.id]);
+  }, [id, isAuthenticated, user?.id]);
 
-const loadCourse = async () => {
-  setLoading(true);
+  const loadCourse = async () => {
+    setLoading(true);
+    try {
+      const coursesList = await getCourses();
+      const publicCourse = coursesList?.find(
+        (c) => String(c.id) === String(id)
+      );
 
-  try {
-    // 1️⃣ Always load public course list
-    const coursesList = await getCourses();
+      if (!publicCourse) {
+        setCourse(null);
+        return;
+      }
 
-    const publicCourse = coursesList?.find(
-      (c) => String(c.id) === String(id)
-    );
+      // 🔓 Not logged in → public data only
+      if (!isAuthenticated) {
+        setCourse({
+          ...publicCourse,
+          purchased: false,
+          modules: [],
+          author: publicCourse.instructor || "CDax Professionals",
+          rating: publicCourse.rating ?? 4.5,
+          reviews: publicCourse.reviewCount ?? "1,000+",
+          image: publicCourse.thumbnailUrl?.startsWith("http")
+            ? publicCourse.thumbnailUrl
+            : `https://cdaxx-backend.onrender.com/${publicCourse.thumbnailUrl}`,
+        });
+        return;
+      }
 
-    if (!publicCourse) {
-      setCourse(null);
-      return;
-    }
+      // 🔐 Logged in → full course
+      const courseDetails = await getCourseById(id, user?.id);
 
-    // 2️⃣ If NOT logged in → show public details only
-    if (!isAuthenticated) {
       setCourse({
-        ...publicCourse,
-        purchased: false,
-        modules: [], // 🔒 no content for public
-        author: publicCourse.instructor || "CDax Professionals",
-        rating: publicCourse.rating ?? 4.5,
-        reviews: publicCourse.reviewCount ?? "1,000+",
-        image: publicCourse.thumbnailUrl?.startsWith("http")
-          ? publicCourse.thumbnailUrl
-          : `https://cdaxx-backend.onrender.com/${publicCourse.thumbnailUrl}`,
+        ...courseDetails,
+        price: publicCourse.price,
+        originalPrice: publicCourse.originalPrice,
+        image: courseDetails.thumbnailUrl?.startsWith("http")
+          ? courseDetails.thumbnailUrl
+          : `https://cdaxx-backend.onrender.com/${courseDetails.thumbnailUrl}`,
+        purchased: Boolean(
+          courseDetails.purchased || courseDetails.isPurchased
+        ),
       });
-      return;
-    }
-
-    // 3️⃣ Logged in → fetch full course
-    const courseDetails = await getCourseById(id, user.id);
-
-    setCourse({
-      ...courseDetails,
-      price: publicCourse.price,
-      originalPrice: publicCourse.originalPrice,
-      image: courseDetails.thumbnailUrl?.startsWith("http")
-        ? courseDetails.thumbnailUrl
-        : `https://cdaxx-backend.onrender.com/${courseDetails.thumbnailUrl}`,
-      purchased: Boolean(
-        courseDetails.purchased || courseDetails.isPurchased
-      ),
-    });
-  } catch (err) {
-    console.error("Course load error:", err);
-    setCourse(null);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  const handleEnroll = () => {
-    if (!isAuthenticated) {
-      openLogin();
-      return;
-    }
-
-    // Already purchased → start learning
-    if (course.purchased) {
-      navigate(`/learn/${course.id}`);
-      return;
-    }
-
-    // Add to cart if not already added
-    if (!alreadyInCart) {
-      addToCart({
-        id: course.id,
-        title: course.title,
-        price: course.price,
-        image: course.image,
-      });
-
-      setPopupMessage("Course added to cart");
-      setShowPopup(true);
-
-      setTimeout(() => {
-        setShowPopup(false);
-        navigate("/cart");
-      }, 800);
-    } else {
-      navigate("/cart");
+    } catch (err) {
+      console.error("Course load error:", err);
+      setCourse(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -194,13 +152,12 @@ const loadCourse = async () => {
       return;
     }
 
-    //  Course already purchased
     if (course.purchased) {
-      navigate(`/learn/${course.id}`);
+      // 🔥 TOGGLE instead of true
+      setStartLearning((prev) => !prev);
       return;
     }
 
-    //  Not purchased → add to cart / go to cart
     if (!alreadyInCart) {
       addToCart({
         id: course.id,
@@ -221,65 +178,46 @@ const loadCourse = async () => {
     }
   };
 
+  const calculateTotalDuration = () => {
+    if (!Array.isArray(course?.modules)) return "0m";
+
+    let totalSeconds = 0;
+    course.modules.forEach((m) =>
+      m.videos?.forEach((v) => (totalSeconds += v.duration || 0))
+    );
+
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#eaf9ff] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading course...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-12 w-12 border-b-2 border-blue-600 rounded-full" />
       </div>
     );
   }
 
   if (!course) {
     return (
-      <div className="min-h-screen bg-[#eaf9ff] flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Course Not Found
-          </h1>
-          <p className="text-gray-600 mb-4">
-            The course you're looking for doesn't exist.
-          </p>
-          <button
-            onClick={() => navigate("/courses")}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Browse Courses
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <button
+          onClick={() => navigate("/courses")}
+          className="px-6 py-2 bg-blue-600 text-white rounded"
+        >
+          Browse Courses
+        </button>
       </div>
     );
   }
 
   const heroSlides = [
-    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3",
     "https://www.rushu.rush.edu/sites/default/files/legacy/images/news-articles/online-class-note-taking-news.jpg",
-    "https://img.freepik.com/free-photo/books-laptop-assortment_23-2149765831.jpg?semt=ais_se_enriched&w=740&q=80",
+    "https://img.freepik.com/free-photo/books-laptop-assortment_23-2149765831.jpg",
   ];
-
-  // Calculate total duration
-  const calculateTotalDuration = () => {
-    if (!course.modules || !Array.isArray(course.modules)) return "0h 0m";
-
-    let totalSeconds = 0;
-    course.modules.forEach((module) => {
-      if (module.videos && Array.isArray(module.videos)) {
-        module.videos.forEach((video) => {
-          totalSeconds += video.duration || 0;
-        });
-      }
-    });
-
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
-  };
 
   return (
     <div className="min-h-screen bg-[#eaf9ff] text-gray-900 pt-10 pb-10 relative">
@@ -395,7 +333,11 @@ const loadCourse = async () => {
             </div>
 
             {/* Course Content Component */}
-            <CourseContent course={course} />
+            <CourseContent
+              course={course}
+              startLearning={startLearning}
+              setStartLearning={setStartLearning}
+            />
           </div>
 
           {/* RIGHT CARD - Updated with new styling */}

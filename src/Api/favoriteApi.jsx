@@ -2,47 +2,80 @@ import api from "./api";
 
 /**
  * FAVORITES API
- * Backend base: https://cdaxx-backend.onrender.com
- * Controller: /api/favorites
+ * Backend endpoints are working correctly!
  */
 
 /**
  * Get all favorite courses of a user
- * GET /api/favorites/{userId}
+ * GET /favorites/{userId}
  */
 export const getUserFavorites = async (userId) => {
-  const response = await api.get(`/api/favorites/${userId}`);
-  return response.data;
+  try {
+    const response = await api.get(`/favorites/${userId}`);
+    return response.data || [];
+  } catch (err) {
+    console.error("Failed to fetch favorites:", err);
+    throw err;
+  }
 };
 
 /**
  * Add a course to favorites
- * POST /api/favorites/{userId}/add/{courseId}
+ * POST /favorites/{userId}/add/{courseId}
  */
 export const addToFavorites = async (userId, courseId) => {
-  const response = await api.post(
-    `/api/favorites/${userId}/add/${courseId}`
-  );
-  return response.data;
+  try {
+    const response = await api.post(`/favorites/${userId}/add/${courseId}`);
+    return response.data;
+  } catch (err) {
+    console.error("Failed to add favorite:", err);
+    throw err;
+  }
 };
 
 /**
  * Remove a course from favorites
- * DELETE /api/favorites/{userId}/remove/{courseId}
+ * DELETE /favorites/{userId}/remove/{courseId}
  */
 export const removeFromFavorites = async (userId, courseId) => {
-  await api.delete(
-    `/api/favorites/${userId}/remove/${courseId}`
-  );
+  try {
+    await api.delete(`/favorites/${userId}/remove/${courseId}`);
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to remove favorite:", err);
+    throw err;
+  }
 };
 
 /**
  * Check if a course is already favorite
- * GET /api/favorites/{userId}/check/{courseId}
+ * GET /favorites/{userId}/check/{courseId}
  */
 export const checkIsFavorite = async (userId, courseId) => {
-  const response = await api.get(
-    `/api/favorites/${userId}/check/${courseId}`
-  );
-  return response.data; // boolean
+  try {
+    const response = await api.get(`/favorites/${userId}/check/${courseId}`);
+    return response.data || false;
+  } catch (err) {
+    console.error("Failed to check favorite:", err);
+    return false;
+  }
+};
+
+/**
+ * Toggle favorite status
+ * Helper function for frontend
+ */
+export const toggleFavorite = async (userId, courseId, isCurrentlyFavorite) => {
+  try {
+    if (isCurrentlyFavorite) {
+      await removeFromFavorites(userId, courseId);
+      return { success: true, isFavorite: false };
+    } else {
+      const result = await addToFavorites(userId, courseId);
+      return { success: true, isFavorite: true, data: result };
+    }
+  } catch (err) {
+    console.error("Failed to toggle favorite:", err);
+    throw err;
+  }
 };

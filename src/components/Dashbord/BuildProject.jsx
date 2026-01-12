@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import hero1 from "../../assets/hero/2.jpg";
 import hero2 from "../../assets/hero/5.jpg";
 import hero3 from "../../assets/hero/7.jpg";
@@ -11,21 +12,21 @@ const slides = [
     desc: "Build real-world, job-ready skills with industry-focused courses designed for 2026 and beyond. Learn through hands-on projects, expert mentorship, and practical assignments that prepare you for real company requirements.",
     image: hero1,
     color: "from-blue-500/10 to-cyan-500/10",
-    icon: "🎯"
+    icon: "🎯",
   },
   {
     title: "Learn With Real Industry Projects",
     desc: "Work on real-world industry projects designed by professionals. Gain practical experience, build a strong portfolio, and develop problem-solving skills that employers actually look for.",
     image: hero2,
     color: "from-purple-500/10 to-pink-500/10",
-    icon: "🚀"
+    icon: "🚀",
   },
   {
     title: "Upgrade Your Career Faster",
     desc: "Upgrade your career with future-ready skills through structured learning paths, expert guidance, and real-world projects. Stay ahead in the job market with skills that matter in 2026 and beyond.",
     image: hero3,
     color: "from-orange-500/10 to-red-500/10",
-    icon: "⚡"
+    icon: "⚡",
   },
 ];
 
@@ -47,18 +48,18 @@ export default function BuildProject() {
     enter: (direction) => ({
       x: direction > 0 ? 1000 : -1000,
       opacity: 0,
-      scale: 0.8
+      scale: 0.8,
     }),
     center: {
       x: 0,
       opacity: 1,
-      scale: 1
+      scale: 1,
     },
     exit: (direction) => ({
       x: direction > 0 ? -1000 : 1000,
       opacity: 0,
-      scale: 0.8
-    })
+      scale: 0.8,
+    }),
   };
 
   const textVariants = {
@@ -73,21 +74,21 @@ export default function BuildProject() {
     exit: (direction) => ({
       x: direction > 0 ? -50 : 50,
       opacity: 0,
-    })
+    }),
   };
 
   const iconVariants = {
     initial: { scale: 0, rotate: -180 },
-    animate: { 
-      scale: 1, 
+    animate: {
+      scale: 1,
       rotate: 0,
       transition: {
         type: "spring",
         stiffness: 200,
-        damping: 10
-      }
+        damping: 10,
+      },
     },
-    exit: { scale: 0, rotate: 180 }
+    exit: { scale: 0, rotate: 180 },
   };
 
   return (
@@ -106,7 +107,7 @@ export default function BuildProject() {
                 exit="exit"
                 transition={{
                   duration: 0.5,
-                  ease: "easeInOut"
+                  ease: "easeInOut",
                 }}
                 className="w-full"
               >
@@ -122,9 +123,7 @@ export default function BuildProject() {
                   >
                     {slides[current].icon}
                   </motion.div>
-                  <motion.h1
-                    className="text-3xl md:text-4xl font-bold text-gray-900"
-                  >
+                  <motion.h1 className="text-3xl md:text-4xl font-bold text-gray-900">
                     {slides[current].title}
                   </motion.h1>
                 </div>
@@ -147,18 +146,20 @@ export default function BuildProject() {
                   className="flex flex-wrap gap-4 mb-8"
                 >
                   <button
-                onClick={() => {
-                  document.getElementById("courses")?.scrollIntoView({
-                    behavior: "smooth",
-                  });
-                }}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-900 transition"
-              >
-                Explore Courses
-              </button>
-                  <button className="border border-blue-600 px-6 py-3 rounded-lg hover:bg-blue-600 hover:text-white transition transform hover:scale-105 active:scale-95">
-                    Talk to Expert
+                    onClick={() => {
+                      document.getElementById("courses")?.scrollIntoView({
+                        behavior: "smooth",
+                      });
+                    }}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-900 transition"
+                  >
+                    Explore Courses
                   </button>
+                  <Link to="/contact-us">
+                    <button className="border border-blue-600 px-6 py-3 rounded-lg hover:bg-blue-600 hover:text-white transition transform hover:scale-105 active:scale-95">
+                      Talk to Expert
+                    </button>
+                  </Link>
                 </motion.div>
 
                 {/* Features List */}
@@ -172,7 +173,7 @@ export default function BuildProject() {
                     "Industry-designed curriculum",
                     "Hands-on real projects",
                     "Job-focused learning paths",
-                    "Career mentorship support"
+                    "Career mentorship support",
                   ].map((feature, index) => (
                     <motion.div
                       key={feature}
@@ -183,7 +184,11 @@ export default function BuildProject() {
                     >
                       <motion.span
                         animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ repeat: Infinity, duration: 2, delay: index * 0.5 }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 2,
+                          delay: index * 0.5,
+                        }}
                         className="text-green-500"
                       >
                         ✓
@@ -209,7 +214,7 @@ export default function BuildProject() {
                   exit="exit"
                   transition={{
                     duration: 0.6,
-                    ease: "easeInOut"
+                    ease: "easeInOut",
                   }}
                   className="relative w-full h-full"
                 >
@@ -218,7 +223,7 @@ export default function BuildProject() {
                     alt="hero"
                     className="w-full h-full object-cover rounded-2xl"
                   />
-                  
+
                   {/* Dynamic gradient overlay */}
                   <div
                     className={`absolute inset-0 bg-gradient-to-r ${slides[current].color} 
@@ -236,8 +241,8 @@ export default function BuildProject() {
                           setCurrent(idx);
                         }}
                         className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                          idx === current 
-                            ? "bg-white scale-125" 
+                          idx === current
+                            ? "bg-white scale-125"
                             : "bg-white/50 hover:bg-white/80"
                         }`}
                         whileHover={{ scale: 1.3 }}
@@ -248,7 +253,7 @@ export default function BuildProject() {
                 </motion.div>
               </AnimatePresence>
             </div>
-            
+
             {/* Navigation Buttons */}
             <div className="flex justify-end mt-4 gap-3">
               <motion.button
