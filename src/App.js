@@ -30,6 +30,7 @@ import CourseGridSection from "./components/Courses/CourseSection";
 import CoursePlans from "./components/Courses/CoursePlans";
 import FavouritesPage from "./pages/FavouritesPage"
 import AuthModal from "./components/Login/AuthModal";
+import MyCourses from "./pages/MyCourses";
 
 function AppContent() {
   const { authOpen, authMode, openLogin, openSignup, closeAuth } = useAuth();
@@ -82,6 +83,7 @@ function AppContent() {
               <Route path="/contact-us" element={<ContactUs />} />
               <Route path="/blogs" element={<Blogs />} />
               <Route path="/investors" element={<Investors />} />
+              <Route path="/my-courses" element={<MyCourses />} />
             </Routes>
           </main>
 

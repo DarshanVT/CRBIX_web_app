@@ -9,7 +9,11 @@ import csharp from "../../assets/hero/c#.png";
 import uiux from "../../assets/hero/UI_UX.jpg";
 import powerBI from "../../assets/hero/powerBI.jpg";
 import flutter from "../../assets/hero/flutter.png";
-
+import AI_ML from "../../assets/hero/AI_ML.jpg";
+import css from "../../assets/hero/css.png";
+import html from "../../assets/hero/html.png";
+import react from "../../assets/hero/react.png";
+import node from "../../assets/hero/node.jpeg";
 
 
 // Add course data with more details
@@ -121,6 +125,86 @@ const COURSE_DETAILS = {
       "App Store Deployment",
     ],
   },
+  html: {
+  title: "HTML Fundamentals",
+  description:
+    "Learn the foundation of web development by building structured and semantic web pages",
+  price: 799,
+  originalPrice: 2999,
+  level: "Beginner",
+  duration: "15 hours",
+  features: [
+    "HTML5 Elements",
+    "Semantic Tags",
+    "Forms & Inputs",
+    "Media Elements",
+    "Best Practices",
+  ],
+},
+css: {
+  title: "CSS Styling & Layout Mastery",
+  description:
+    "Design visually appealing, responsive, and modern websites using CSS",
+  price: 899,
+  originalPrice: 3499,
+  level: "Beginner to Intermediate",
+  duration: "20 hours",
+  features: [
+    "Flexbox & Grid",
+    "Responsive Design",
+    "Animations & Transitions",
+    "Media Queries",
+    "Modern UI Styling",
+  ],
+},
+react: {
+  title: "React Frontend Development",
+  description:
+    "Build dynamic, scalable, and high-performance user interfaces using React",
+  price: 1299,
+  originalPrice: 4999,
+  level: "Intermediate",
+  duration: "30 hours",
+  features: [
+    "Components & Props",
+    "Hooks & State Management",
+    "React Router",
+    "API Integration",
+    "Project-based Learning",
+  ],
+},
+nodejs: {
+  title: "Node.js Backend Development",
+  description:
+    "Create fast, scalable, and secure backend applications using Node.js",
+  price: 1199,
+  originalPrice: 4599,
+  level: "Intermediate",
+  duration: "28 hours",
+  features: [
+    "REST APIs",
+    "Express.js",
+    "Authentication",
+    "Database Integration",
+    "Server-side Logic",
+  ],
+},
+aiml: {
+  title: "AI & Machine Learning Mastery",
+  description:
+    "Build intelligent systems and data-driven models using artificial intelligence and machine learning concepts",
+  price: 1499,
+  originalPrice: 5999,
+  level: "Intermediate",
+  duration: "35 hours",
+  features: [
+    "Machine Learning Algorithms",
+    "Supervised & Unsupervised Learning",
+    "Model Training & Evaluation",
+    "Neural Networks Basics",
+    "Real-world AI Projects",
+  ],
+},
 };
 
 const DEFAULT_IMAGES = [
@@ -158,6 +242,31 @@ const DEFAULT_IMAGES = [
     src: flutter,
     alt: "Flutter Mobile",
     key: "flutter",
+  },
+  {
+    src: html,
+    alt: "HTML",
+    key: "html",
+  },
+  {
+    src: css,
+    alt: "CSS",
+    key: "css",
+  },
+  {
+    src: react,
+    alt: "React Native",
+    key: "react",
+  },
+  {
+    src: node,
+    alt: "Node JS",
+    key: "node",
+  },
+  {
+    src: AI_ML,
+    alt: "AI_ML",
+    key: "AIML",
   },
 ];
 
@@ -648,7 +757,6 @@ export default function DomeGallery({
   const handleAddToCart = useCallback(
     (course) => {
       console.log("Adding to cart:", course);
-      alert(`🎉 "${course.title}" has been added to your cart!`);
       handleClosePopup();
     },
     [handleClosePopup]
@@ -766,7 +874,7 @@ export default function DomeGallery({
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ duration: 0.25 }}
         className="bg-white rounded-xl max-w-md w-full relative"
-        onClick={(e) => e.stopPropagation()} // 👈 andar click safe
+        onClick={(e) => e.stopPropagation()} 
       >
         <div className="p-6">
           <img
@@ -793,7 +901,7 @@ export default function DomeGallery({
 
           <button
             onClick={() => handleAddToCart(selectedCourse)}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold"
           >
             ₹{selectedCourse.price}
           </button>

@@ -45,7 +45,7 @@ export default function CourseCard({ course }) {
     if (!isAuthenticated) return openLogin();
 
     if (isPurchased) {
-      navigate(`/learn/${course.id}`);
+      navigate(`/course/${course.id}`);
       return;
     }
 
