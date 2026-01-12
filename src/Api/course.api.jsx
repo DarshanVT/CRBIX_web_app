@@ -6,7 +6,7 @@ export const getCourses = async (userId = null) => {
   try {
     const params = {};
     if (userId) params.userId = userId;
-    
+
     const res = await api.get("/courses", { params });
     return res.data?.data ?? [];
   } catch (err) {
@@ -19,7 +19,7 @@ export const getCourseById = async (courseId, userId = null) => {
   try {
     const params = {};
     if (userId) params.userId = userId;
-    
+
     const res = await api.get(`/courses/${courseId}`, { params });
     return res.data?.data ?? null;
   } catch (err) {
@@ -31,7 +31,7 @@ export const getCourseById = async (courseId, userId = null) => {
 export const getDashboardCourses = async (userId) => {
   try {
     const res = await api.get("/dashboard/courses", {
-      params: { userId: userId }
+      params: { userId: userId },
     });
     return res.data?.data ?? [];
   } catch (err) {
@@ -97,29 +97,30 @@ export const clearCart = async (userId) => {
 export const purchaseCourse = async (courseId) => {
   try {
     // Get userId from localStorage
-    const userId = localStorage.getItem('user_id');
-    
-    if (!userId || userId === 'null') {
-      throw new Error('User ID not found. Please login again.');
+    const userId = localStorage.getItem("user_id");
+
+    if (!userId || userId === "null") {
+      throw new Error("User ID not found. Please login again.");
     }
-    
+
     const res = await api.post(`/purchase`, null, {
       params: {
         userId: userId,
-        courseId: courseId
-      }
+        courseId: courseId,
+      },
     });
-    
-    return { 
-      success: true, 
-      message: res.data?.message || 'Purchase successful',
-      data: res.data 
+
+    return {
+      success: true,
+      message: res.data?.message || "Purchase successful",
+      data: res.data,
     };
   } catch (err) {
     console.error("Purchase failed:", err);
-    return { 
-      success: false, 
-      message: err.response?.data?.message || 'Purchase failed. Please try again.'
+    return {
+      success: false,
+      message:
+        err.response?.data?.message || "Purchase failed. Please try again.",
     };
   }
 };
@@ -127,22 +128,21 @@ export const purchaseCourse = async (courseId) => {
 export const getPurchasedCourses = async (userId) => {
   try {
     const res = await api.get(`/courses/subscribed/${userId}`);
-    return res.data ?? [];
+    return res.data?.data ?? [];
   } catch (err) {
     console.error("Get purchased courses failed:", err);
     return [];
   }
 };
-
 export const isCoursePurchased = async (courseId) => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return false;
-    
+
     const res = await api.get(`/courses/${courseId}`, {
-      params: { userId: userId }
+      params: { userId: userId },
     });
-    
+
     const courseData = res.data?.data;
     return courseData?.isPurchased || false;
   } catch (err) {
@@ -155,9 +155,9 @@ export const isCoursePurchased = async (courseId) => {
 
 export const getFavorites = async () => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return [];
-    
+
     const res = await api.get(`/favorites/${userId}`);
     return res.data ?? [];
   } catch (err) {
@@ -168,9 +168,9 @@ export const getFavorites = async () => {
 
 export const addToFavorite = async (courseId) => {
   try {
-    const userId = localStorage.getItem('user_id');
-    if (!userId) throw new Error('Please login first');
-    
+    const userId = localStorage.getItem("user_id");
+    if (!userId) throw new Error("Please login first");
+
     const res = await api.post(`/favorites/${userId}/add/${courseId}`);
     return res.data;
   } catch (err) {
@@ -181,9 +181,9 @@ export const addToFavorite = async (courseId) => {
 
 export const removeFromFavorites = async (courseId) => {
   try {
-    const userId = localStorage.getItem('user_id');
-    if (!userId) throw new Error('Please login first');
-    
+    const userId = localStorage.getItem("user_id");
+    if (!userId) throw new Error("Please login first");
+
     await api.delete(`/favorites/${userId}/remove/${courseId}`);
     return { success: true };
   } catch (err) {
@@ -196,11 +196,11 @@ export const removeFromFavorites = async (courseId) => {
 
 export const getCourseProgress = async (courseId) => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return null;
-    
+
     const res = await api.get(`/course/${courseId}/progress`, {
-      params: { userId: userId }
+      params: { userId: userId },
     });
     return res.data;
   } catch (err) {
@@ -211,9 +211,9 @@ export const getCourseProgress = async (courseId) => {
 
 export const getUserOverallProgress = async () => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return null;
-    
+
     const res = await api.get(`/user/${userId}/progress/overall`);
     return res.data;
   } catch (err) {
@@ -224,12 +224,12 @@ export const getUserOverallProgress = async () => {
 
 export const getStreak = async (courseId = null) => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return null;
-    
+
     const params = { userId: userId };
     if (courseId) params.courseId = courseId;
-    
+
     const res = await api.get(`/profile/streak`, { params: params });
     return res.data;
   } catch (err) {
@@ -240,11 +240,11 @@ export const getStreak = async (courseId = null) => {
 
 export const getDashboardStats = async () => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return null;
-    
+
     const res = await api.get(`/dashboard/stats`, {
-      params: { userId: userId }
+      params: { userId: userId },
     });
     return res.data;
   } catch (err) {
@@ -257,11 +257,11 @@ export const getDashboardStats = async () => {
 
 export const getModulesByCourse = async (courseId) => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return null;
-    
+
     const res = await api.get(`/modules/course/${courseId}`, {
-      params: { userId: userId }
+      params: { userId: userId },
     });
     return res.data;
   } catch (err) {
@@ -272,14 +272,14 @@ export const getModulesByCourse = async (courseId) => {
 
 export const unlockNextModule = async (courseId, moduleId) => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return false;
-    
+
     const res = await api.post(`/modules/${moduleId}/unlock-next`, null, {
       params: {
         userId: userId,
-        courseId: courseId
-      }
+        courseId: courseId,
+      },
     });
     return res.data?.success || false;
   } catch (err) {
@@ -290,11 +290,11 @@ export const unlockNextModule = async (courseId, moduleId) => {
 
 export const unlockAssessment = async (moduleId) => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return false;
-    
+
     const res = await api.post(`/modules/${moduleId}/unlock-assessment`, null, {
-      params: { userId: userId }
+      params: { userId: userId },
     });
     return res.data?.success || false;
   } catch (err) {
@@ -307,11 +307,11 @@ export const unlockAssessment = async (moduleId) => {
 
 export const canAttemptAssessment = async (assessmentId) => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return false;
-    
+
     const res = await api.get(`/course/assessment/can-attempt`, {
-      params: { userId: userId, assessmentId: assessmentId }
+      params: { userId: userId, assessmentId: assessmentId },
     });
     return res.data?.canAttempt ?? false;
   } catch (err) {
@@ -322,11 +322,11 @@ export const canAttemptAssessment = async (assessmentId) => {
 
 export const getAssessmentQuestions = async (assessmentId) => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return null;
-    
+
     const res = await api.get(`/course/assessment/questions`, {
-      params: { userId: userId, assessmentId: assessmentId }
+      params: { userId: userId, assessmentId: assessmentId },
     });
     return res.data;
   } catch (err) {
@@ -337,11 +337,11 @@ export const getAssessmentQuestions = async (assessmentId) => {
 
 export const submitAssessment = async (assessmentId, answers) => {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem("user_id");
     if (!userId) return null;
-    
+
     const res = await api.post(`/course/assessment/submit`, answers, {
-      params: { userId: userId, assessmentId: assessmentId }
+      params: { userId: userId, assessmentId: assessmentId },
     });
     return res.data;
   } catch (err) {
@@ -361,15 +361,12 @@ export const updateVideoProgress = async (
   forwardJumpsCount = 0
 ) => {
   try {
-    const res = await api.post(
-      `/api/videos/${videoId}/progress`,
-      {
-        userId,
-        watchedSeconds,
-        lastPositionSeconds,
-        forwardJumpsCount,
-      }
-    );
+    const res = await api.post(`/videos/${videoId}/progress`, {
+      userId,
+      watchedSeconds,
+      lastPositionSeconds,
+      forwardJumpsCount,
+    });
 
     return res.data;
   } catch (err) {
@@ -379,20 +376,13 @@ export const updateVideoProgress = async (
 };
 
 // 2️⃣ SEEK / FORWARD JUMP
-export const seekVideo = async (
-  userId,
-  videoId,
-  seekPositionSeconds
-) => {
+export const seekVideo = async (userId, videoId, seekPositionSeconds) => {
   try {
-    const res = await api.post(
-      `/api/videos/${videoId}/seek`,
-      {
-        userId,
-        lastPositionSeconds: seekPositionSeconds,
-        forwardJump: true,
-      }
-    );
+    const res = await api.post(`/videos/${videoId}/seek`, {
+      userId,
+      lastPositionSeconds: seekPositionSeconds,
+      forwardJump: true,
+    });
 
     return { success: res.data?.success ?? true };
   } catch (err) {
@@ -402,24 +392,15 @@ export const seekVideo = async (
 };
 
 // 3️⃣ VIDEO COMPLETE (ALREADY CONNECTED TO MODULE FLOW)
-export const completeVideo = async (
-  userId,
-  courseId,
-  moduleId,
-  videoId
-) => {
+export const completeVideo = async (userId, courseId, moduleId, videoId) => {
   try {
-    const res = await api.post(
-      `/api/videos/${videoId}/complete`,
-      null,
-      {
-        params: {
-          userId,
-          courseId,
-          moduleId,
-        },
-      }
-    );
+    const res = await api.post(`/videos/${videoId}/complete`, null, {
+      params: {
+        userId,
+        courseId,
+        moduleId,
+      },
+    });
 
     return { success: res.data?.success ?? true };
   } catch (err) {
@@ -427,8 +408,6 @@ export const completeVideo = async (
     return { success: false };
   }
 };
-
-
 
 /* ==================== PROFILE ==================== */
 
@@ -446,9 +425,9 @@ export const getProfile = async () => {
 
 export const checkoutCart = async (checkoutData) => {
   try {
-    const userId = localStorage.getItem('user_id');
-    if (!userId) throw new Error('Please login first');
-    
+    const userId = localStorage.getItem("user_id");
+    if (!userId) throw new Error("Please login first");
+
     const res = await api.post(`/cart/${userId}/checkout`, checkoutData);
     return res.data;
   } catch (err) {
@@ -457,5 +436,4 @@ export const checkoutCart = async (checkoutData) => {
   }
 };
 
-export const getSubscribedCourses = (userId) =>
-  api.get(`/api/courses/subscribed/${userId}`);
+

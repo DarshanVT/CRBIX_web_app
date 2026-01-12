@@ -16,7 +16,7 @@ export const updateUserProfile = async (userId, payload) => {
 
 /* ================= SUBSCRIBED COURSES ================= */
 export const getSubscribedCourses = async (userId) => {
-  // 🔒 Guard: user not logged in
+  //  Guard: user not logged in
   if (!userId) {
     console.warn("getSubscribedCourses called without userId");
     return [];

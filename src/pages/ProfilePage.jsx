@@ -4,17 +4,14 @@ import StreakGrid from "../components/Profile/StreakGrid";
 import EditProfileModal from "../components/Profile/EditProfileModal";
 import EnrolledCoursesModal from "../components/Profile/EnrolledCoursesModal";
 import { useProfile } from "../components/Profile/ProfileContext";
+import { HiChevronRight } from "react-icons/hi";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { profile, fetchProfile } = useProfile();
+  const { profile, enrolledCourses, loading } = useProfile();
 
   const [editOpen, setEditOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
 
   const initials =
     profile?.name
@@ -23,7 +20,7 @@ export default function ProfilePage() {
       .slice(0, 2)
       .join("") || "?";
 
-  if (!profile) return <div>Loading...</div>;
+  if (loading || !profile) return <div>Loading...</div>;
 
   return (
     <div className="max-w-8xl bg-[#eaf9ff] mx-auto p-6">
@@ -55,19 +52,22 @@ export default function ProfilePage() {
         </span>
       </div>
 
-      {/* Enrolled Courses */}
       <div
-        className="mt-6 bg-white rounded-xl shadow p-4 cursor-pointer"
+        className="mt-6 bg-white rounded-xl shadow p-4 cursor-pointer flex items-center justify-between hover:bg-gray-50 transition"
         onClick={() => setCoursesOpen(true)}
       >
-        <p className="font-medium">Enrolled Courses</p>
-        <p className="text-sm text-gray-500">
-          View all enrolled courses
-        </p>
+        <div>
+          <p className="font-medium">Enrolled Courses</p>
+          <p className="text-sm text-gray-500">
+            {enrolledCourses.length} courses enrolled
+          </p>
+        </div>
+
+        <HiChevronRight className="text-gray-400 text-xl" />
       </div>
 
       {/* Streak */}
-      <div  className="mt-6  bg-white rounded-xl shadow p-4 cursor-pointer">
+      <div className="mt-6  bg-white rounded-xl shadow p-4 cursor-pointer">
         <h2 className="text-lg font-semibold mb-3">Streak</h2>
         <StreakGrid />
       </div>
@@ -75,12 +75,12 @@ export default function ProfilePage() {
       {/* Menu */}
       <div className="mt-6 bg-white rounded-xl shadow divide-y">
         {[
-          ["Settings", () => alert("Coming soon")],
-          ["Courses", () => navigate("/dashboard/courses")],
-          ["Certifications", () => navigate("/dashboard/certifications")],
-          ["Payment", () => navigate("/dashboard/subscription/methods")],
-          ["Placement", () => navigate("/dashboard/placement/eligibility")],
-          ["Privacy Policy", () => alert("Coming soon")],
+            ["Settings", () => alert("Coming soon")],
+          ["Courses", () => navigate("/courses")],
+          ["Certifications", () => alert("Coming soon")],
+          ["Payment", () => navigate("/payment")],
+          ["Placement", () => alert("Coming soon")],
+          ["Privacy Policy", () => navigate("/privacy-policy")],
         ].map(([label, action]) => (
           <div
             key={label}
@@ -88,7 +88,7 @@ export default function ProfilePage() {
             className="p-4 cursor-pointer hover:bg-gray-50 flex justify-between"
           >
             <span>{label}</span>
-            <span>›</span>
+            <span><HiChevronRight className="text-gray-400 text-xl" /></span>
           </div>
         ))}
       </div>
@@ -102,6 +102,7 @@ export default function ProfilePage() {
 
       {coursesOpen && (
         <EnrolledCoursesModal
+          courses={enrolledCourses}
           onClose={() => setCoursesOpen(false)}
         />
       )}
