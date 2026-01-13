@@ -134,6 +134,7 @@ export const getPurchasedCourses = async (userId) => {
     return [];
   }
 };
+
 export const isCoursePurchased = async (courseId) => {
   try {
     const userId = localStorage.getItem("user_id");
@@ -270,6 +271,16 @@ export const getModulesByCourse = async (courseId) => {
   }
 };
 
+export const getModuleById = async (moduleId) => {
+  try {
+    const res = await api.get(`/modules/${moduleId}`);
+    return res.data;
+  } catch (err) {
+    console.error("Get module by ID failed:", err);
+    return null;
+  }
+};
+
 export const unlockNextModule = async (courseId, moduleId) => {
   try {
     const userId = localStorage.getItem("user_id");
@@ -303,56 +314,8 @@ export const unlockAssessment = async (moduleId) => {
   }
 };
 
-/* ==================== ASSESSMENT ==================== */
+/* ==================== VIDEO PROGRESS & COMPLETION ==================== */
 
-export const canAttemptAssessment = async (assessmentId) => {
-  try {
-    const userId = localStorage.getItem("user_id");
-    if (!userId) return false;
-
-    const res = await api.get(`/course/assessment/can-attempt`, {
-      params: { userId: userId, assessmentId: assessmentId },
-    });
-    return res.data?.canAttempt ?? false;
-  } catch (err) {
-    console.error("Assessment check failed:", err);
-    return false;
-  }
-};
-
-export const getAssessmentQuestions = async (assessmentId) => {
-  try {
-    const userId = localStorage.getItem("user_id");
-    if (!userId) return null;
-
-    const res = await api.get(`/course/assessment/questions`, {
-      params: { userId: userId, assessmentId: assessmentId },
-    });
-    return res.data;
-  } catch (err) {
-    console.error("Assessment questions fetch failed:", err);
-    return null;
-  }
-};
-
-export const submitAssessment = async (assessmentId, answers) => {
-  try {
-    const userId = localStorage.getItem("user_id");
-    if (!userId) return null;
-
-    const res = await api.post(`/course/assessment/submit`, answers, {
-      params: { userId: userId, assessmentId: assessmentId },
-    });
-    return res.data;
-  } catch (err) {
-    console.error("Assessment submit failed:", err);
-    return null;
-  }
-};
-
-/* ==================== VIDEO PROGRESS ==================== */
-
-// 1️⃣ AUTO SAVE PROGRESS (play / pause / interval)
 export const updateVideoProgress = async (
   userId,
   videoId,
@@ -375,7 +338,6 @@ export const updateVideoProgress = async (
   }
 };
 
-// 2️⃣ SEEK / FORWARD JUMP
 export const seekVideo = async (userId, videoId, seekPositionSeconds) => {
   try {
     const res = await api.post(`/videos/${videoId}/seek`, {
@@ -391,7 +353,6 @@ export const seekVideo = async (userId, videoId, seekPositionSeconds) => {
   }
 };
 
-// 3️⃣ VIDEO COMPLETE (ALREADY CONNECTED TO MODULE FLOW)
 export const completeVideo = async (userId, courseId, moduleId, videoId) => {
   try {
     const res = await api.post(`/videos/${videoId}/complete`, null, {
@@ -406,6 +367,190 @@ export const completeVideo = async (userId, courseId, moduleId, videoId) => {
   } catch (err) {
     console.error("Video completion failed:", err);
     return { success: false };
+  }
+};
+
+/* ==================== ASSESSMENT ==================== */
+
+export const getAssessmentStatus = async (assessmentId) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return null;
+
+    const res = await api.get("/course/assessment/status", {
+      params: { userId, assessmentId },
+    });
+
+    return res.data?.data ?? null;
+  } catch (err) {
+    console.error("Assessment status fetch failed:", err);
+    return null;
+  }
+};
+
+export const canAttemptAssessment = async (assessmentId) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return false;
+
+    const res = await api.get("/course/assessment/can-attempt", {
+      params: {
+        userId,
+        assessmentId,
+      },
+    });
+
+    return res.data?.canAttempt ?? false;
+  } catch (err) {
+    console.error("Assessment canAttempt failed:", err);
+    return false;
+  }
+};
+
+export const getAssessmentQuestions = async (assessmentId) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return null;
+
+    const res = await api.get("/course/assessment/questions", {
+      params: { userId, assessmentId },
+    });
+
+    return res.data?.data ?? null;
+  } catch (err) {
+    console.error("Assessment questions fetch failed:", err);
+    return null;
+  }
+};
+
+export const submitAssessment = async (assessmentId, answers) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return null;
+
+    const res = await api.post(
+      "/course/assessment/submit",
+      answers,
+      { params: { userId, assessmentId } }
+    );
+
+    return res.data?.data ?? res.data;
+  } catch (err) {
+    console.error("Assessment submit failed:", err);
+    return null;
+  }
+};
+
+// NEW: Get assessments by module
+export const getModuleAssessments = async (moduleId) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return [];
+
+    const res = await api.get(`/modules/${moduleId}/assessments`, {
+      params: { userId }
+    });
+    return res.data || [];
+  } catch (err) {
+    console.error("Get module assessments failed:", err);
+    return [];
+  }
+};
+
+// NEW: Get assessment details
+export const getAssessmentDetails = async (assessmentId) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return null;
+
+    const res = await api.get(`/assessments/${assessmentId}`, {
+      params: { userId }
+    });
+    return res.data;
+  } catch (err) {
+    console.error("Get assessment details failed:", err);
+    return null;
+  }
+};
+
+// NEW: Check module completion
+export const checkModuleCompletion = async (moduleId) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return false;
+
+    const res = await api.get(`/modules/${moduleId}/completion`, {
+      params: { userId }
+    });
+    return res.data?.completed || false;
+  } catch (err) {
+    console.error("Check module completion failed:", err);
+    return false;
+  }
+};
+
+// NEW: Check assessment unlock
+export const checkAssessmentUnlock = async (moduleId) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return false;
+
+    const res = await api.get(`/course/assessment/can-attempt`, {
+      params: {
+        userId,
+        assessmentId: moduleId
+      }
+    });
+    return res.data?.canAttempt || false;
+  } catch (err) {
+    console.error("Check assessment unlock failed:", err);
+    return false;
+  }
+};
+
+// NEW: Submit assessment answer
+export const submitAssessmentAnswer = async (assessmentId, answers) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return null;
+
+    const res = await api.post(`/course/assessment/submit`, answers, {
+      params: { userId, assessmentId }
+    });
+    return res.data;
+  } catch (err) {
+    console.error("Submit assessment failed:", err);
+    return null;
+  }
+};
+
+// NEW: Unlock next module if available
+export const unlockNextModuleIfAvailable = async (courseId, completedModuleId) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return false;
+
+    const res = await api.post(`/modules/${completedModuleId}/unlock-next`, null, {
+      params: {
+        userId,
+        courseId
+      }
+    });
+    return res.data?.success || false;
+  } catch (err) {
+    console.error("Unlock next module failed:", err);
+    return false;
+  }
+};
+
+// NEW: Get videos by module
+export const getVideosByModule = async (moduleId) => {
+  try {
+    const res = await api.get(`/modules/${moduleId}/videos`);
+    return res.data || [];
+  } catch (err) {
+    console.error("Get videos by module failed:", err);
+    return [];
   }
 };
 
@@ -438,7 +583,6 @@ export const checkoutCart = async (checkoutData) => {
 
 /* ==================== STREAK ==================== */
 
-
 export const getStreakOverview = async () => {
   try {
     const userId = localStorage.getItem("user_id");
@@ -453,9 +597,7 @@ export const getStreakOverview = async () => {
     console.error("Streak overview failed:", err);
     return null;
   }
-  
 };
-
 
 export const getStreakDayDetails = async (courseId, date) => {
   try {
@@ -474,5 +616,197 @@ export const getStreakDayDetails = async (courseId, date) => {
     console.error("Streak day details failed:", err);
     return null;
   }
-  
+};
+
+// NEW: Get month-based streak
+export const getMonthStreak = async (courseId, year, month) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return null;
+
+    const res = await api.get(`/streak/course/${courseId}/month`, {
+      params: {
+        userId,
+        year,
+        month
+      }
+    });
+    return res.data;
+  } catch (err) {
+    console.error("Month streak fetch failed:", err);
+    return null;
+  }
+};
+
+// NEW: Get all courses with advanced search
+export const advancedSearchCourses = async (searchParams) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    const params = { ...searchParams };
+    if (userId) params.userId = userId;
+
+    const res = await api.get("/courses/advanced-search", { params });
+    return res.data?.data ?? [];
+  } catch (err) {
+    console.error("Advanced search failed:", err);
+    return [];
+  }
+};
+
+// NEW: Get popular tags
+export const getPopularTags = async () => {
+  try {
+    const res = await api.get("/courses/tags/popular");
+    return res.data?.tags ?? [];
+  } catch (err) {
+    console.error("Get popular tags failed:", err);
+    return [];
+  }
+};
+
+// NEW: Get courses by tag
+export const getCoursesByTag = async (tagName, userId = null) => {
+  try {
+    const params = {};
+    if (userId) params.userId = userId;
+
+    const res = await api.get(`/courses/tag/${tagName}`, { params });
+    return res.data?.data ?? [];
+  } catch (err) {
+    console.error("Get courses by tag failed:", err);
+    return [];
+  }
+};
+
+// NEW: Get search suggestions
+export const getSearchSuggestions = async (query) => {
+  try {
+    const res = await api.get("/courses/search/suggestions", {
+      params: { query }
+    });
+    return res.data?.suggestions ?? [];
+  } catch (err) {
+    console.error("Get search suggestions failed:", err);
+    return [];
+  }
+};
+
+// NEW: Unlock video for user
+export const unlockVideoForUser = async (userId, courseId, moduleId, videoId) => {
+  try {
+    const res = await api.post(`/videos/${videoId}/unlock`, null, {
+      params: {
+        userId,
+        courseId,
+        moduleId
+      }
+    });
+    return res.data?.success || false;
+  } catch (err) {
+    console.error("Unlock video failed:", err);
+    return false;
+  }
+};
+
+// NEW: Check if module is unlocked
+export const isModuleUnlocked = async (moduleId) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return false;
+
+    const res = await api.get(`/modules/${moduleId}/unlocked`, {
+      params: { userId }
+    });
+    return res.data?.unlocked || false;
+  } catch (err) {
+    console.error("Check module unlock failed:", err);
+    return false;
+  }
+};
+
+// NEW: Get user video progress
+export const getUserVideoProgress = async (videoId) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return null;
+
+    const res = await api.get(`/videos/${videoId}/user-progress`, {
+      params: { userId }
+    });
+    return res.data;
+  } catch (err) {
+    console.error("Get user video progress failed:", err);
+    return null;
+  }
+};
+
+// NEW: Mark video as watched
+export const markVideoAsWatched = async (videoId, watchedSeconds) => {
+  try {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return false;
+
+    const res = await api.post(`/videos/${videoId}/mark-watched`, null, {
+      params: {
+        userId,
+        watchedSeconds
+      }
+    });
+    return res.data?.success || false;
+  } catch (err) {
+    console.error("Mark video as watched failed:", err);
+    return false;
+  }
+};
+
+export default {
+  getCourses,
+  getCourseById,
+  getDashboardCourses,
+  getCart,
+  getCartSummary,
+  addToCart,
+  removeFromCart,
+  clearCart,
+  purchaseCourse,
+  getPurchasedCourses,
+  isCoursePurchased,
+  getFavorites,
+  addToFavorite,
+  removeFromFavorites,
+  getCourseProgress,
+  getUserOverallProgress,
+  getStreak,
+  getDashboardStats,
+  getModulesByCourse,
+  getModuleById,
+  unlockNextModule,
+  unlockAssessment,
+  updateVideoProgress,
+  seekVideo,
+  completeVideo,
+  getAssessmentStatus,
+  canAttemptAssessment,
+  getAssessmentQuestions,
+  submitAssessment,
+  getModuleAssessments,
+  getAssessmentDetails,
+  checkModuleCompletion,
+  checkAssessmentUnlock,
+  submitAssessmentAnswer,
+  unlockNextModuleIfAvailable,
+  getVideosByModule,
+  getProfile,
+  checkoutCart,
+  getStreakOverview,
+  getStreakDayDetails,
+  getMonthStreak,
+  advancedSearchCourses,
+  getPopularTags,
+  getCoursesByTag,
+  getSearchSuggestions,
+  unlockVideoForUser,
+  isModuleUnlocked,
+  getUserVideoProgress,
+  markVideoAsWatched
 };

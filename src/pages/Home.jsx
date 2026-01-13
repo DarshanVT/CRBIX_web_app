@@ -1,4 +1,3 @@
-
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import DomeGallery from "../components/Dashbord/HeroCarousel";
@@ -26,26 +25,26 @@ export default function HomeSections() {
     }
   }, [location]);
   return (
-    <div className="bg-[#eaf9ff] overflow-hidden font-body">
+    <div className="bg-[#eaf9ff] dark:bg-gray-900 overflow-hidden font-body transition-colors duration-200">
          <div style={{ width: '100vw', height: '100vh' }}>
       <DomeGallery />
     </div>
       <LearningExperience />
-        <div className="border-t border-gray-700 my-6"></div>
-      < GetCertified />
-      <div className="border-t border-gray-700 my-6"></div>
+        <div className="border-t border-gray-300 dark:border-gray-700 my-6"></div>
+      <GetCertified />
+      <div className="border-t border-gray-300 dark:border-gray-700 my-6"></div>
       <section id="courses">
         <CourseGridSection />
       </section>
-      <div className="border-t border-gray-700 my-6"></div>
+      <div className="border-t border-gray-300 dark:border-gray-700 my-6"></div>
       <WhyChooseUs /> 
-      <div className="border-t border-gray-700 my-6"></div>
+      <div className="border-t border-gray-300 dark:border-gray-700 my-6"></div>
       <CoursePlans />
-      <div className="border-t border-gray-700 my-6"></div>
+      <div className="border-t border-gray-300 dark:border-gray-700 my-6"></div>
       <BuildProject />
-      <div className="border-t border-gray-700 my-6"></div>
+      <div className="border-t border-gray-300 dark:border-gray-700 my-6"></div>
       <TrustedBy />
-      <div className="border-t border-gray-700 my-6"></div>
+      <div className="border-t border-gray-300 dark:border-gray-700 my-6"></div>
      <Testimonials /> 
     </div>
   );

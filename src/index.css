@@ -8,9 +8,83 @@
 /* Import Ubuntu font from Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap');
 
-/* Apply globally */
-body {
-  font-family: 'Ubuntu', sans-serif;
-  margin: 0;
-  padding: 0;
+/* Dark mode base styles */
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+  
+  body {
+    font-family: 'Ubuntu', sans-serif;
+    margin: 0;
+    padding: 0;
+    @apply bg-gray-50 text-gray-900 transition-colors duration-200;
+  }
+  
+  body.dark {
+    @apply bg-gray-900 text-gray-100;
+  }
+}
+
+/* Custom components with dark mode support */
+@layer components {
+  .card {
+    @apply bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/30 rounded-xl;
+  }
+  
+  .input-field {
+    @apply bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 
+           text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 
+           focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 
+           transition-colors;
+  }
+  
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 
+           text-white font-medium py-2 px-4 rounded-lg transition-colors 
+           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 
+           dark:focus:ring-offset-gray-800;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 
+           text-gray-800 dark:text-gray-200 font-medium py-2 px-4 rounded-lg 
+           transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 
+           focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+  }
+  
+  .section-title {
+    @apply text-2xl font-bold text-gray-800 dark:text-white mb-4;
+  }
+  
+  .text-muted {
+    @apply text-gray-600 dark:text-gray-400;
+  }
+}
+
+/* Smooth transitions for theme changes */
+* {
+  @apply transition-colors duration-200;
+}
+
+/* Scrollbar styling for dark mode */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500 dark:bg-gray-500;
+}
+
+/* Remove transitions for certain elements to prevent flashing */
+.no-transition {
+  transition: none !important;
 }

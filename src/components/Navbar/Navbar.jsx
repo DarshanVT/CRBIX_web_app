@@ -74,14 +74,14 @@ const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
-          className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
         >
           <div className="p-6">
             {/* Warning Icon */}
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                 <svg
-                  className="w-8 h-8 text-blue-600"
+                  className="w-8 h-8 text-blue-600 dark:text-blue-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -97,12 +97,12 @@ const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
             </div>
 
             {/* Title */}
-            <h3 className="text-xl font-bold text-center text-gray-900 mb-2">
+            <h3 className="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">
               Are you sure?
             </h3>
 
             {/* Message */}
-            <p className="text-gray-600 text-center mb-6">
+            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
               You will be logged out of your account. You'll need to sign in
               again to access your courses and profile.
             </p>
@@ -111,13 +111,13 @@ const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
             <div className="flex gap-3">
               <button
                 onClick={onClose}
-                className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={onConfirm}
-                className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-600 transition-all shadow-lg"
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-500 dark:to-blue-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-600 dark:hover:from-blue-600 dark:hover:to-blue-700 transition-all shadow-lg"
               >
                 Yes, Logout
               </button>
@@ -199,7 +199,7 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full h-[60px]">
-        <div className="h-full bg-[#eaf9ff]/95 backdrop-blur border-b border-black/10">
+        <div className="h-full bg-[#eaf9ff]/95 dark:bg-gray-900/95 backdrop-blur border-b border-black/10 dark:border-gray-700/50">
           <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between relative">
             {/* LOGO */}
             <Link to="/">
@@ -209,7 +209,7 @@ export default function Navbar() {
             {/* CENTER */}
             <div className="hidden lg:flex flex-1 items-center gap-8 mx-4">
               <Link to="/">
-                <button className="font-medium px-2 py-1 hover:text-blue-600 transition-colors">
+                <button className="font-medium px-2 py-1 text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                   Home
                 </button>
               </Link>
@@ -223,13 +223,13 @@ export default function Navbar() {
                   setActiveCategory(null);
                 }}
               >
-                <button className="font-medium px-2 py-1 hover:text-blue-600 transition-colors">
+                <button className="font-medium px-2 py-1 text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                   Explore
                 </button>
 
                 {/* MEGA MENU */}
                 <div
-                  className={`absolute left-0 top-full mt-3 bg-white shadow-2xl rounded-xl border z-50
+                  className={`absolute left-0 top-full mt-3 bg-white dark:bg-gray-800 shadow-2xl rounded-xl border border-gray-200 dark:border-gray-700 z-50
                     transition-all duration-200 ${
                       showExplore
                         ? "opacity-100 visible translate-y-0"
@@ -238,7 +238,7 @@ export default function Navbar() {
                 >
                   <div className="flex">
                     {/* LEFT – MAIN CATEGORIES */}
-                    <ul className="w-[320px] border-r">
+                    <ul className="w-[320px] border-r border-gray-200 dark:border-gray-700">
                       {Object.keys(exploreData).map((category) => (
                         <li
                           key={category}
@@ -246,12 +246,12 @@ export default function Navbar() {
                           className={`flex items-center justify-between px-5 py-3 cursor-pointer text-sm font-medium
                             ${
                               activeCategory === category
-                                ? "bg-blue-50 text-blue-600"
-                                : "hover:bg-blue-50"
+                                ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                                : "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                             }`}
                         >
                           <span>{category}</span>
-                          <HiChevronRight className="text-gray-400" />
+                          <HiChevronRight className="text-gray-400 dark:text-gray-500" />
                         </li>
                       ))}
                     </ul>
@@ -263,10 +263,10 @@ export default function Navbar() {
                           {exploreData[activeCategory].map((sub) => (
                             <li
                               key={sub}
-                              className="flex items-center justify-between text-sm text-gray-700 hover:text-blue-600 cursor-pointer"
+                              className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
                             >
                               <span>{sub}</span>
-                              <HiChevronRight className="text-gray-300" />
+                              <HiChevronRight className="text-gray-300 dark:text-gray-600" />
                             </li>
                           ))}
                         </ul>
@@ -281,34 +281,34 @@ export default function Navbar() {
                 <input
                   type="text"
                   placeholder="Search for anything"
-                  className="w-full px-4 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                 />
-                <button className="absolute right-1 top-1/2 -translate-y-1/2 bg-blue-500 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 transition-colors">
+                <button className="absolute right-1 top-1/2 -translate-y-1/2 bg-blue-500 dark:bg-blue-600 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
                   Search
                 </button>
               </form>
 
               <Link
                 to="/plans-pricing"
-                className="font-medium hover:text-blue-600 transition-colors"
+                className="font-medium text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 Plans & Pricing
               </Link>
 
               <Link
                 to="/privacy-policy"
-                className="font-medium hover:text-blue-600 transition-colors"
+                className="font-medium text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 Privacy & Policy
               </Link>
 
               {/* FAVOURITES */}
               <Link to="/favourites" className="relative group">
-                <div className="flex items-center gap-1 font-medium hover:text-blue-500 transition-colors">
+                <div className="flex items-center gap-1 font-medium text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
                   <HiHeart className="text-lg" />
                   <span>Favourites</span>
                   {favorites.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="absolute -top-2 -right-2 bg-blue-500 dark:bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                       {favorites.length}
                     </span>
                   )}
@@ -320,12 +320,12 @@ export default function Navbar() {
             <div className="hidden lg:flex items-center gap-4">
               {/* CART */}
               <Link to="/cart" className="relative group">
-                <motion.button className="flex items-center gap-1 px-4 py-2 rounded-full border text-sm hover:bg-blue-50 transition-colors">
+                <motion.button className="flex items-center gap-1 px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
                   <HiOutlineShoppingCart size={18} />
                   Cart
                   {/* Cart count badge */}
                   {cart.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="absolute -top-2 -right-2 bg-blue-500 dark:bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                       {cart.length}
                     </span>
                   )}
@@ -352,19 +352,19 @@ export default function Navbar() {
 
                   {/* USER DROPDOWN MENU */}
                   {showUserMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border py-2 z-50">
-                      <div className="px-4 py-3 border-b">
-                        <p className="font-semibold text-gray-900 truncate">
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                        <p className="font-semibold text-gray-900 dark:text-white truncate">
                           {user.firstName} {user.lastName}
                         </p>
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                           {user.email}
                         </p>
                       </div>
 
                       <Link
                         to="/"
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
                         <svg
@@ -385,7 +385,7 @@ export default function Navbar() {
 
                       <Link
                         to="/profile"
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
                         <svg
@@ -406,7 +406,7 @@ export default function Navbar() {
 
                       <Link
                         to="/my-courses"
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
                         <svg
@@ -427,22 +427,22 @@ export default function Navbar() {
 
                       <Link
                         to="/favourites"
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <HiHeart className="w-4 h-4 text-blue-600" />
+                        <HiHeart className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         My Favourites
                         {favorites.length > 0 && (
-                          <span className="ml-auto bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                          <span className="ml-auto bg-blue-600 dark:bg-blue-700 text-white text-xs px-2 py-0.5 rounded-full">
                             {favorites.length}
                           </span>
                         )}
                       </Link>
 
-                      <div className="border-t mt-2 pt-2">
+                      <div className="border-t border-gray-200 dark:border-gray-700 mt-2 pt-2">
                         <button
                           onClick={handleLogoutClick}
-                          className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                          className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
                         >
                           <svg
                             className="w-4 h-4"
@@ -468,14 +468,14 @@ export default function Navbar() {
                 <>
                   <button
                     onClick={openLogin}
-                    className="px-4 py-2 rounded-full border border-blue-500 text-blue-500 hover:bg-blue-50 transition-colors"
+                    className="px-4 py-2 rounded-full border border-blue-500 text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     Login
                   </button>
 
                   <button
                     onClick={openSignup}
-                    className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 transition-all shadow-lg"
+                    className="px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-500 dark:to-blue-600 text-white hover:from-blue-700 hover:to-blue-600 dark:hover:from-blue-600 dark:hover:to-blue-700 transition-all shadow-lg"
                   >
                     Sign up
                   </button>
@@ -485,7 +485,7 @@ export default function Navbar() {
 
             {/* MOBILE MENU BUTTON */}
             <button
-              className="lg:hidden"
+              className="lg:hidden text-gray-800 dark:text-gray-200"
               onClick={() => setMenuOpen(!menuOpen)}
             >
               {menuOpen ? <HiX size={28} /> : <HiMenu size={28} />}
@@ -494,27 +494,27 @@ export default function Navbar() {
 
           {/* MOBILE MENU */}
           {menuOpen && (
-            <div className="lg:hidden px-4 pb-6 space-y-4 border-t bg-[#eaf9ff]">
+            <div className="lg:hidden px-4 pb-6 space-y-4 border-t border-gray-200 dark:border-gray-700 bg-[#eaf9ff] dark:bg-gray-900">
               {isAuthenticated && user ? (
                 // MOBILE: USER LOGGED IN
                 <>
-                  <div className="py-4 border-b">
+                  <div className="py-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xl">
                         {getUserInitials()}
                       </div>
                       <div>
-                        <p className="font-semibold">
+                        <p className="font-semibold text-gray-800 dark:text-white">
                           {user.firstName} {user.lastName}
                         </p>
-                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
                       </div>
                     </div>
                   </div>
 
                   <Link
                     to="/dashboard"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     <svg
@@ -535,7 +535,7 @@ export default function Navbar() {
 
                   <Link
                     to="/profile"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     <svg
@@ -556,7 +556,7 @@ export default function Navbar() {
 
                   <Link
                     to="/my-courses"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     <svg
@@ -577,13 +577,13 @@ export default function Navbar() {
 
                   <Link
                     to="/favourites"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
-                    <HiHeart className="w-5 h-5 text-blue-500" />
+                    <HiHeart className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                     Favourites
                     {favorites.length > 0 && (
-                      <span className="ml-auto bg-red-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
+                      <span className="ml-auto bg-red-100 dark:bg-red-900/30 text-blue-600 dark:text-blue-400 text-xs px-2 py-0.5 rounded-full">
                         {favorites.length}
                       </span>
                     )}
@@ -591,7 +591,7 @@ export default function Navbar() {
 
                   <Link
                     to="/explore-courses"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     Explore
@@ -599,7 +599,7 @@ export default function Navbar() {
 
                   <Link
                     to="/plans-pricing"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     Plans & Pricing
@@ -607,7 +607,7 @@ export default function Navbar() {
 
                   <Link
                     to="/privacy-policy"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     Privacy & Policy
@@ -615,19 +615,19 @@ export default function Navbar() {
 
                   <Link
                     to="/cart"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     <HiOutlineShoppingCart size={18} />
                     Cart
-                    <span className="ml-auto bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
+                    <span className="ml-auto bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs px-2 py-0.5 rounded-full">
                       2
                     </span>
                   </Link>
 
                   <button
                     onClick={handleLogoutClick}
-                    className="w-full py-3 mt-4 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-medium hover:from-red-700 hover:to-red-600 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3 mt-4 rounded-xl bg-gradient-to-r from-red-600 to-red-500 dark:from-red-500 dark:to-red-600 text-white font-medium hover:from-red-700 hover:to-red-600 dark:hover:from-red-600 dark:hover:to-red-700 transition-all flex items-center justify-center gap-2"
                   >
                     <svg
                       className="w-5 h-5"
@@ -650,7 +650,7 @@ export default function Navbar() {
                 <>
                   <Link
                     to="/explore-courses"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     Explore
@@ -658,7 +658,7 @@ export default function Navbar() {
 
                   <Link
                     to="/plans-pricing"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     Plans & Pricing
@@ -666,7 +666,7 @@ export default function Navbar() {
 
                   <Link
                     to="/privacy-policy"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     Privacy & Policy
@@ -674,13 +674,13 @@ export default function Navbar() {
 
                   <Link
                     to="/favourites"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
-                    <HiHeart className="w-5 h-5 text-blue-500" />
+                    <HiHeart className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                     Favourites
                     {favorites.length > 0 && (
-                      <span className="ml-auto bg-red-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
+                      <span className="ml-auto bg-red-100 dark:bg-red-900/30 text-blue-600 dark:text-blue-400 text-xs px-2 py-0.5 rounded-full">
                         {favorites.length}
                       </span>
                     )}
@@ -688,12 +688,12 @@ export default function Navbar() {
 
                   <Link
                     to="/cart"
-                    className="flex items-center gap-2 py-3 border-b"
+                    className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
                     <HiOutlineShoppingCart size={18} />
                     Cart
-                    <span className="ml-auto bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
+                    <span className="ml-auto bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs px-2 py-0.5 rounded-full">
                       2
                     </span>
                   </Link>
@@ -705,7 +705,7 @@ export default function Navbar() {
                         openLogin();
                         setMenuOpen(false);
                       }}
-                      className="w-full py-3 rounded-xl border-2 border-blue-600 text-blue-600 font-medium hover:bg-blue-50 transition-colors"
+                      className="w-full py-3 rounded-xl border-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 font-medium hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
                     >
                       Login
                     </button>
@@ -715,7 +715,7 @@ export default function Navbar() {
                         openSignup();
                         setMenuOpen(false);
                       }}
-                      className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium hover:from-blue-700 hover:to-blue-600 transition-all shadow-lg"
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-500 dark:to-blue-600 text-white font-medium hover:from-blue-700 hover:to-blue-600 dark:hover:from-blue-600 dark:hover:to-blue-700 transition-all shadow-lg"
                     >
                       Sign Up
                     </button>

@@ -31,6 +31,10 @@ import CoursePlans from "./components/Courses/CoursePlans";
 import FavouritesPage from "./pages/FavouritesPage"
 import AuthModal from "./components/Login/AuthModal";
 import MyCourses from "./pages/MyCourses";
+import SettingsPage from "./components/Profile/SettingsPage";
+import CertificationsPage from "./components/Profile/CertificationsPage";
+import PlacementPage from "./components/Profile/PlacementPage";
+import { ThemeProvider } from "./components/Profile/ThemeContext"; 
 
 function AppContent() {
   const { authOpen, authMode, openLogin, openSignup, closeAuth } = useAuth();
@@ -84,6 +88,9 @@ function AppContent() {
               <Route path="/blogs" element={<Blogs />} />
               <Route path="/investors" element={<Investors />} />
               <Route path="/my-courses" element={<MyCourses />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/certifications" element={<CertificationsPage />} />
+              <Route path="/placement" element={<PlacementPage />} />
             </Routes>
           </main>
 
@@ -103,9 +110,11 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <ProfileProvider>
-        <AppContent />
-      </ProfileProvider>
+      <ThemeProvider> {/* ← Added ThemeProvider wrapper */}
+        <ProfileProvider>
+          <AppContent />
+        </ProfileProvider>
+      </ThemeProvider> {/* ← Added ThemeProvider wrapper */}
     </AuthProvider>
   );
 }
