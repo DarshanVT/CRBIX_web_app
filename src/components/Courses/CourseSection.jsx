@@ -27,17 +27,22 @@ export default function CourseGridSection() {
             ? c.thumbnailUrl
             : `https://cdaxx-backend.onrender.com/${c.thumbnailUrl.replace(/^\/?/, "")}`
           : "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800",
-        price: c.price,
-        originalPrice: c.originalPrice,
+        price: c.effectivePrice || c.price,
+        originalPrice: c.hasDiscount ? c.price : null,
         rating: c.rating ?? 4.6,
-        reviews: c.reviews ?? "2,500",
-        purchased: c.purchased ?? false,
-        badge: c.purchased ? "Enrolled" : "Bestseller",
+        reviews: (c.totalRatings?.toString()?.replace(/\B(?=(\d{3})+(?!\d))/g, ",")) ?? "2,500",
+        // FIX: Use isSubscribed field from API response
+        purchased: c.isSubscribed === true,
+        // Show "Enrolled" badge for purchased courses, otherwise show discount or bestseller
+        badge: c.isSubscribed ? "Enrolled" : (c.hasDiscount ? `Save ${Math.round(c.discountPercentage || 0)}%` : "Bestseller"),
         author: c.instructor ?? "CDax Professionals",
         modules: c.modules ?? [],
         description: c.description ?? "",
+        // Add additional fields that might be useful
+        level: c.level,
+        duration: c.formattedDuration,
+        category: c.category,
       }));
-
       setCourses(mapped);
       setLoading(false);
     };

@@ -59,60 +59,90 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
       return;
     }
 
+    console.log("🔄 Attempting registration...");
     const res = await registerUser(formData);
+    console.log("📥 Registration response:", res);
+    
     setLoading(false);
 
     if (!res.success) {
-  setErrorMsg(res.message || "Registration failed");
-  return;
-}
+      setErrorMsg(res.message || "Registration failed");
+      return;
+    }
 
-    // SUCCESS
-    alert("Registration successful! Please login.");
-    setIsPanelActive(false); 
-    
-    setFormData(prev => ({
-      ...prev,
-      firstName: "",
-      lastName: "",
-      phoneNo: "",
-      password: "",
-      cPass: ""
-    }));
+    // ✅ SUCCESS - Auto-login after registration
+    if (res.user) {
+      console.log("✅ Registration successful, auto-login");
+      loginSuccess(res.user);
+      onClose();
+    } else {
+      // If no user data, just switch to login
+      alert("Registration successful! Please login.");
+      setIsPanelActive(false);
+      
+      // Clear password fields only
+      setFormData(prev => ({
+        ...prev,
+        password: "",
+        cPass: ""
+      }));
+    }
   };
 
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg("");
 
-const handleLoginSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setErrorMsg("");
+    if (!formData.email || !formData.password) {
+      setErrorMsg("Please enter email and password");
+      setLoading(false);
+      return;
+    }
 
-  if (!formData.email || !formData.password) {
-    setErrorMsg("Please enter email and password");
+    console.log("🔄 Attempting login...");
+    const res = await loginUser({
+      email: formData.email,
+      password: formData.password,
+    });
+
+    console.log("📥 Login response:", res);
+    
     setLoading(false);
-    return;
-  }
 
-  const res = await loginUser({
-    email: formData.email,
-    password: formData.password,
-  });
+    if (!res.success) {
+      setErrorMsg(res.message || "Login failed");
+      return;
+    }
 
-  setLoading(false);
+    // Check localStorage to see what was stored
+    console.log("🔍 After login, localStorage:", {
+      auth_token: localStorage.getItem('auth_token')?.substring(0, 20) + '...',
+      user_id: localStorage.getItem('user_id'),
+      user_info: localStorage.getItem('user_info')
+    });
 
-  if (!res.success) {
-    setErrorMsg(res.message || "Login failed");
-    return;
-  }
-
-  //  SUCCESS - Backend se user data mil raha hai
-  if (res.user) {
-    loginSuccess(res.user); //  Pass the user object
-  } else {
-    setErrorMsg("User data not received from server");
-  }
-};
-
+    // ✅ SUCCESS - Handle different response formats
+    if (res.user) {
+      console.log("✅ Login successful with user object");
+      loginSuccess(res.user);
+      onClose();
+    } else if (res.userId) {
+      console.log("✅ Login successful with userId");
+      loginSuccess({ id: res.userId, email: formData.email });
+      onClose();
+    } else {
+      // Try to get user from localStorage
+      const userInfo = localStorage.getItem('user_info');
+      if (userInfo) {
+        console.log("✅ Login successful, user found in localStorage");
+        loginSuccess(JSON.parse(userInfo));
+        onClose();
+      } else {
+        setErrorMsg("Login successful but no user data received");
+      }
+    }
+  };
 
   // Blue color scheme
   const darkBlue = "#1a237e";

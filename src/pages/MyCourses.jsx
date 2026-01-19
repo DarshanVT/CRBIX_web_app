@@ -1,110 +1,73 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { getDashboardCourses } from "../Api/course.api";
-import { useAuth } from "../components/Login/AuthContext";
+// In MyCourses.jsx, update the useEffect and add useCallback:
+import React, { useState, useEffect, useCallback } from 'react';
+import CourseContent from '../components/Courses/CourseContent';
+import CourseCard from '../components/Courses/CourseCard';
+import { useAuth } from '../components/Login/AuthContext';
+import * as courseApi from '../Api/course.api';
 
-export default function MyCourses() {
-  const { user, isAuthenticated, openLogin } = useAuth();
-  const navigate = useNavigate();
-
+const MyCourses = () => {
+  const { user } = useAuth();
   const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchUserCourses = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoading(true);
+      // Use getPurchasedCourses from your API
+      const data = await courseApi.getPurchasedCourses(user.id);
+      setCourses(data);
+    } catch (error) {
+      console.error('Error fetching user courses:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
   useEffect(() => {
-    if (!isAuthenticated || !user?.id) return;
+    fetchUserCourses();
+  }, [fetchUserCourses]);
 
-    setLoading(true);
+  const handleCourseClick = (course) => {
+    setSelectedCourse(course);
+  };
 
-    getDashboardCourses(user.id)
-      .then((allCourses) => {
-        const enrolled = allCourses.filter(
-          (c) => c.isSubscribed === true
-        );
-        setCourses(enrolled);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [isAuthenticated, user?.id]);
-
-  /* ================= STATES ================= */
-
-  if (!isAuthenticated) {
+  if (selectedCourse && user) {
     return (
-      <div className="p-10 text-center">
-        <button onClick={openLogin} className="btn-primary">
-          Login to view your courses
-        </button>
-      </div>
+      <CourseContent 
+        courseId={selectedCourse.id} 
+      />
     );
   }
-
-  if (loading) return <p className="p-10">Loading...</p>;
-
-  if (!courses.length) {
-    return (
-      <div className="p-10 text-center text-gray-500">
-        You haven’t purchased any courses yet.
-      </div>
-    );
-  }
-
-  /* ================= UI ================= */
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">My Courses</h1>
-
-      <div className="space-y-4">
-        {courses.map((course) => {
-          const progress =
-            course.progressPercentage ??
-            course.progressPercent ??
-            0;
-
-          return (
-            <div
-              key={course.id}
-              onClick={() =>
-                navigate(`/course/${course.id}`)
-              }
-              className="w-full bg-white rounded-xl shadow p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition"
-            >
-              {/* Thumbnail */}
-              <img
-                src={course.thumbnailUrl}
-                alt={course.title}
-                className="w-36 h-20 object-cover rounded-lg"
+    <div className="my-courses-page">
+      <h1>My Learning</h1>
+      
+      {loading ? (
+        <div className="loading">Loading your courses...</div>
+      ) : courses.length === 0 ? (
+        <div className="no-courses">
+          <p>You haven't enrolled in any courses yet.</p>
+          <a href="/courses">Browse Courses</a>
+        </div>
+      ) : (
+        <>
+          <div className="course-grid">
+            {courses.map(course => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                onClick={() => handleCourseClick(course)}
               />
-
-              {/* Middle content */}
-              <div className="flex-1">
-                <h3 className="font-semibold text-sm">
-                  {course.title}
-                </h3>
-
-                {/* Progress bar */}
-                <div className="mt-3">
-                  <div className="w-full h-2 bg-gray-200 rounded-full">
-                    <div
-                      className="h-2 bg-blue-600 rounded-full"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-
-                  <p className="text-xs text-gray-500 mt-1">
-                    {progress}% completed
-                  </p>
-                </div>
-              </div>
-
-              {/* Right side */}
-              <span className="text-sm text-blue-600 font-medium">
-                Continue →
-              </span>
-            </div>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
-}
+};
+
+export default MyCourses;

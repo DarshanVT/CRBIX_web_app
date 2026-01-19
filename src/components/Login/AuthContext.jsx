@@ -7,16 +7,25 @@ export const AuthProvider = ({ children }) => {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [isAuth, setIsAuth] = useState(false);
-  const [user, setUser] = useState(null); //  Yahan setUser define karo
+  const [user, setUser] = useState(null);
 
-  //  sync with localStorage
+  // Sync with localStorage - CHECK ALL AUTH DATA
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
+    const token = localStorage.getItem("auth_token");
+    const userInfo = localStorage.getItem("user_info") || localStorage.getItem("user");
     
-    if (token && storedUser) {
+    console.log("🔄 AuthContext init check:", {
+      token: !!token,
+      userInfo: !!userInfo,
+      user_id: localStorage.getItem("user_id")
+    });
+    
+    if (token && userInfo) {
       setIsAuth(true);
-      setUser(JSON.parse(storedUser));
+      setUser(JSON.parse(userInfo));
+      console.log("✅ AuthContext: User authenticated");
+    } else {
+      console.log("⚠️ AuthContext: No valid auth data found");
     }
   }, []);
 
@@ -32,21 +41,52 @@ export const AuthProvider = ({ children }) => {
 
   const closeAuth = () => setAuthOpen(false);
 
-  //  call this after login success
+  // Call this after login success
   const loginSuccess = (userData) => {
-    localStorage.setItem("token", "user-authenticated");
-    localStorage.setItem("user", JSON.stringify(userData));
-    setIsAuth(true);
-    setUser(userData); //  setUser use karo
-    closeAuth();
+    const token = localStorage.getItem('auth_token');
+    const userInfo = localStorage.getItem('user_info');
+    const userId = localStorage.getItem('user_id');
+      console.log("🔍 loginSuccess check:", {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      tokenStart: token?.substring(0, 20),
+      hasUserInfo: !!userInfo,
+      userId: userId,
+      userDataFromParam: userData
+    });
+      
+    if (token && userInfo) {
+      setIsAuth(true);
+      setUser(JSON.parse(userInfo));
+      closeAuth();
+      console.log("✅ AuthContext: Login successful");
+    } else {
+          console.error("❌ AuthContext: Missing token or user info after login");
+          console.error("   Token exists:", !!token);
+          console.error("   User info exists:", !!userInfo);
+          console.error("   User data from param:", userData);
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setIsAuth(false);
-    setUser(null); //  setUser use karo
-  };
+const logout = () => {
+  // Clear ALL auth data
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user_id');
+  localStorage.removeItem('user_info');
+  localStorage.removeItem('user');
+  
+  // Also clear any other potential auth items
+  Object.keys(localStorage).forEach(key => {
+    if (key.includes('token') || key.includes('auth') || key.includes('user')) {
+      console.log("🗑️ Removing:", key);
+    }
+  });
+  
+  setIsAuth(false);
+  setUser(null);
+  console.log("✅ AuthContext: User logged out");
+};
 
   return (
     <AuthContext.Provider
@@ -57,10 +97,10 @@ export const AuthProvider = ({ children }) => {
         openSignup,
         closeAuth,
         isAuthenticated: isAuth,
-        user, //  user data provide karo
+        user,
         loginSuccess,
         logout,
-        setUser, //  setUser provide karo (agar needed ho)
+        setUser,
       }}
     >
       {children}
