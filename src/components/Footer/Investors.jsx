@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 export default function Investors() {
   return (
-    <section className="max-w-7xl mx-auto px-4 py-12 dark:bg-gray-900">
+    <section className="w-full mx-auto px-4 pt-5 pb-5 dark:bg-gray-900">
       {/* HERO */}
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold mb-4 dark:text-white">Invest in CDaX</h1>

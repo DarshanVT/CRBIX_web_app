@@ -1,20 +1,20 @@
 const API_BASE = "https://cdaxx-backend.onrender.com/api/auth";
-
+// const API_BASE = "http://192.168.1.7:8080/api/auth";
 /**
  * Register a new user (UPDATED for JWT)
  */
+
 export const registerUser = async (userData) => {
   try {
     const payload = {
       firstName: userData.firstName,
       lastName: userData.lastName,
       email: userData.email,
-      phoneNumber: userData.phoneNo,  // CHANGED: "mobile" → "phoneNumber"
+      phoneNumber: userData.phoneNo,
       password: userData.password,
-      // REMOVED: cpassword - backend doesn't have this field
     };
 
-    const response = await fetch(`${API_BASE}/jwt/register`, {  // CHANGED: /register → /jwt/register
+    const response = await fetch(`${API_BASE}/jwt/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -24,11 +24,30 @@ export const registerUser = async (userData) => {
 
     const data = await response.json();
     
+    console.log("📥 Register response:", {
+      success: data.success,
+      hasAccessToken: !!data.accessToken,
+      accessTokenLength: data.accessToken?.length
+    });
+    
     // Store token if registration successful
-    if (data.success && data.token) {
-      localStorage.setItem('auth_token', data.token);
+    if (data.success && data.accessToken) {
+      const tokenStored = safeSetItem('auth_token', data.accessToken);
+      
+      if (!tokenStored) {
+        console.error("❌ FAILED to store auth_token during registration");
+      }
+      
       if (data.refreshToken) {
-        localStorage.setItem('refresh_token', data.refreshToken);
+        safeSetItem('refresh_token', data.refreshToken);
+      }
+      
+      // Store user data if available
+      if (data.user) {
+        safeSetItem('user_info', JSON.stringify(data.user));
+        if (data.user.id) {
+          safeSetItem('user_id', data.user.id.toString());
+        }
       }
     }
     
@@ -46,6 +65,43 @@ export const registerUser = async (userData) => {
 /**
  * Login user (UPDATED for JWT)
  */
+const safeSetItem = (key, value) => {
+  try {
+    // Convert to string if needed
+    const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+    
+    // Set the item
+    localStorage.setItem(key, stringValue);
+    
+    // Immediately read it back to verify
+    const storedValue = localStorage.getItem(key);
+    
+    if (storedValue !== stringValue) {
+      console.error(`❌ localStorage verification failed for key: ${key}`);
+      console.error(`   Expected: ${stringValue.substring(0, 50)}...`);
+      console.error(`   Got: ${storedValue?.substring(0, 50)}...`);
+      
+      // Try again with a different approach
+      localStorage.removeItem(key);
+      localStorage.setItem(key, stringValue);
+      
+      // Verify again
+      const retryValue = localStorage.getItem(key);
+      if (retryValue !== stringValue) {
+        throw new Error(`Persistent localStorage failure for ${key}`);
+      }
+      console.log(`✅ Retry successful for ${key}`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`❌ Error storing ${key}:`, error);
+    return false;
+  }
+};
+
+
+
 export const loginUser = async (credentials) => {
   try {
     const response = await fetch(`${API_BASE}/jwt/login`, {
@@ -61,27 +117,54 @@ export const loginUser = async (credentials) => {
 
     const data = await response.json();
     
-    if (data.success && data.token) {
-      localStorage.setItem('auth_token', data.token);
+    console.log("📥 Login response:", {
+      success: data.success,
+      hasAccessToken: !!data.accessToken,
+      accessTokenLength: data.accessToken?.length,
+      hasUser: !!data.user,
+      userId: data.user?.id
+    });
+    
+    if (data.success && data.accessToken) {
+      // 🔥 CRITICAL: Store token with verification
+      const tokenStored = safeSetItem('auth_token', data.accessToken);
       
-      // ✅ CRITICAL: Store user ID
+      if (!tokenStored) {
+        console.error("❌ FAILED to store auth_token");
+        return {
+          success: false,
+          message: 'Authentication storage failed'
+        };
+      }
+      
+      // Store user data
       if (data.user && data.user.id) {
-        localStorage.setItem('user_id', data.user.id.toString());
-        localStorage.setItem('user_info', JSON.stringify(data.user));
+        safeSetItem('user_id', data.user.id.toString());
+        safeSetItem('user_info', JSON.stringify(data.user));
         console.log('✅ User ID stored:', data.user.id);
-      } else if (data.userId) {
-        // Some APIs return userId directly
-        localStorage.setItem('user_id', data.userId.toString());
-        console.log('✅ User ID stored:', data.userId);
       }
       
       if (data.refreshToken) {
-        localStorage.setItem('refresh_token', data.refreshToken);
+        safeSetItem('refresh_token', data.refreshToken);
       }
+      
+      // 🔥 CRITICAL: Verify everything was stored
+      const verifyToken = localStorage.getItem('auth_token');
+      console.log("✅ Storage verification:", {
+        tokenVerified: verifyToken === data.accessToken,
+        tokenLengthMatch: verifyToken?.length === data.accessToken?.length,
+        tokenPreview: verifyToken?.substring(0, 30) + '...'
+      });
+      
+      return data;
+    } else {
+      console.error("❌ Login failed:", data);
+      return {
+        success: false,
+        message: data.message || 'Login failed'
+      };
     }
     
-    return data;
-
   } catch (error) {
     console.error('Login error:', error);
     return {

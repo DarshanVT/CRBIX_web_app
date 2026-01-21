@@ -1,60 +1,73 @@
 // src/pages/SettingsPage.jsx
 import { useState, useEffect } from "react";
-import { getUserSettings, updateUserSettings } from "../../Api/settings.api";
 import { HiShieldCheck, HiEye, HiDesktopComputer, HiCreditCard, HiSun, HiMoon } from "react-icons/hi";
-import { useTheme } from "./ThemeContext"; // ← Added import
+import { useTheme } from "./ThemeContext";
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState({
+    accountSettings: {
+      email: "", // Will be filled from localStorage
+      phone: "",
+      twoFactorEnabled: false
+    },
+    privacySettings: {
+      dataSharing: true,
+      profileVisibility: "public"
+    },
+    displaySettings: {
+      theme: "system",
+      fontSize: "medium",
+      language: "en"
+    },
+    subscriptionInfo: {
+      plan: "Free",
+      status: "active",
+      nextBillingDate: "N/A"
+    }
+  });
+  
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("account");
-  const { theme, toggleTheme } = useTheme(); // ← Added theme hook
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    try {
-      setLoading(true);
-      const data = await getUserSettings();
-      setSettings(data);
-    } catch (error) {
-      console.error("Failed to fetch settings:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      await updateUserSettings(settings);
-      alert("Settings saved successfully!");
-    } catch (error) {
-      alert("Failed to save settings");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Handle theme change from settings
-  const handleThemeChange = (selectedTheme) => {
-    // Update local settings state
+    // Load user data from localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const savedSettings = JSON.parse(localStorage.getItem('user_settings') || '{}');
+    
     setSettings({
-      ...settings,
+      accountSettings: {
+        email: user.email || "",
+        phone: user.phoneNumber || "",
+        twoFactorEnabled: savedSettings.accountSettings?.twoFactorEnabled || false
+      },
+      privacySettings: {
+        dataSharing: savedSettings.privacySettings?.dataSharing ?? true,
+        profileVisibility: savedSettings.privacySettings?.profileVisibility || "public"
+      },
       displaySettings: {
-        ...settings.displaySettings,
-        theme: selectedTheme
+        theme: localStorage.getItem('theme') || "system",
+        fontSize: savedSettings.displaySettings?.fontSize || "medium",
+        language: savedSettings.displaySettings?.language || "en"
+      },
+      subscriptionInfo: {
+        plan: user.subscriptionPlan || "Free",
+        status: "active",
+        nextBillingDate: "N/A"
       }
     });
+  }, []);
+
+  const handleSave = () => {
+    setSaving(true);
     
-    // Update global theme
-    if (selectedTheme === 'system') {
-      // Clear localStorage to use system preference
+    // Save to localStorage only
+    localStorage.setItem('user_settings', JSON.stringify(settings));
+    
+    // Apply theme if changed
+    if (settings.displaySettings.theme === 'system') {
       localStorage.removeItem('theme');
-      // Check system preference
       if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         document.documentElement.classList.remove('light');
         document.documentElement.classList.add('dark');
@@ -63,11 +76,27 @@ export default function SettingsPage() {
         document.documentElement.classList.add('light');
       }
     } else {
-      // Set specific theme
-      localStorage.setItem('theme', selectedTheme);
+      localStorage.setItem('theme', settings.displaySettings.theme);
       document.documentElement.classList.remove('light', 'dark');
-      document.documentElement.classList.add(selectedTheme);
+      document.documentElement.classList.add(settings.displaySettings.theme);
     }
+    
+    // Show success message
+    setTimeout(() => {
+      alert("Settings saved locally! ✅");
+      setSaving(false);
+    }, 500);
+  };
+
+  // Handle theme change
+  const handleThemeChange = (selectedTheme) => {
+    setSettings({
+      ...settings,
+      displaySettings: {
+        ...settings.displaySettings,
+        theme: selectedTheme
+      }
+    });
   };
 
   const tabs = [
@@ -77,14 +106,11 @@ export default function SettingsPage() {
     { id: "subscription", label: "Subscription Info", icon: <HiCreditCard /> },
   ];
 
-  if (loading) return <div className="p-8 text-center">Loading settings...</div>;
-  if (!settings) return <div className="p-8 text-center">Failed to load settings</div>;
-
   return (
     <div className="max-w-8xl mx-auto p-6 bg-[#eaf9ff] dark:bg-gray-900 min-h-screen">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Settings</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">Manage your account preferences</p>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">Manage your preferences</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
@@ -116,7 +142,7 @@ export default function SettingsPage() {
             {/* Account Settings */}
             {activeTab === "account" && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Account Settings</h2>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Account Information</h2>
                 
                 <div className="space-y-4">
                   <div>
@@ -125,16 +151,12 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="email"
-                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg bg-gray-50"
                       value={settings.accountSettings?.email || ""}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        accountSettings: {
-                          ...settings.accountSettings,
-                          email: e.target.value
-                        }
-                      })}
+                      disabled
+                      readOnly
                     />
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Contact admin to change email</p>
                   </div>
 
                   <div>
@@ -144,6 +166,7 @@ export default function SettingsPage() {
                     <input
                       type="tel"
                       className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
+                      placeholder="Enter phone number"
                       value={settings.accountSettings?.phone || ""}
                       onChange={(e) => setSettings({
                         ...settings,
@@ -250,8 +273,8 @@ export default function SettingsPage() {
                           key={themeOption.id}
                           onClick={() => handleThemeChange(themeOption.id)}
                           className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
-                            document.documentElement.classList.contains(themeOption.id) || 
-                            (themeOption.id === 'system' && !localStorage.getItem('theme'))
+                            (themeOption.id === 'system' && !localStorage.getItem('theme')) ||
+                            localStorage.getItem('theme') === themeOption.id
                               ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                               : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                           }`}

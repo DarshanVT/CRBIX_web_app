@@ -39,7 +39,7 @@ const blogs = [
 
 export default function Blogs() {
   return (
-    <section className="max-w-7xl mx-auto px-4 py-12 dark:bg-gray-900">
+    <section className="w-full mx-auto px-4 pt-5 pb-5 dark:bg-gray-900">
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4 dark:text-white">CDaX Blog</h1>

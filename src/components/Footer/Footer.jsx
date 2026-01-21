@@ -9,15 +9,37 @@ import {
   FaLinkedin, 
   FaYoutube   
 } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { getCourses } from "../../Api/course.api"; 
 
 const Footer = () => {
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        const data = await getCourses();
+        console.log("Footer courses loaded:", data); 
+        setCourses(data || []);
+      } catch (err) {
+        console.error("Failed to load courses for footer", err);
+        setError("Failed to load courses");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
   return (
-   
     <footer className="bg-[#d2f1ff] dark:bg-gray-900 text-black dark:text-gray-200 text-sm">
-       <div className="border-t border-gray-300 dark:border-gray-700"></div>
-      {/* Main footer content */}
+      <div className="border-t border-gray-300 dark:border-gray-700"></div>
+      
       <div className="px-6 md:px-20 py-10 grid grid-cols-1 lg:grid-cols-3 gap-28">
-        {/* Column 1 - Company Info & App Stores */}
         <div className="lg:col-span-1">
           <h3 className="text-xl font-bold text-black dark:text-white mb-4">CDaX App</h3>
           <p className="mb-6 text-gray-600 dark:text-gray-400">
@@ -64,14 +86,11 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Columns 2 & 3 - Right section (2/3 width) */}
         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left side (About & Legal) */}
           <div className="grid grid-cols-1 gap-6">
-            {/* About */}
             <div>
               <h4 className="font-semibold text-black dark:text-white mb-4 text-lg">About</h4>
-              <ul className="space-y-3 text-gray-600 dark:text-gray-400" >
+              <ul className="space-y-3 text-gray-600 dark:text-gray-400">
                 <li><Link to="/about-us" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About Us</Link></li>
                 <li><Link to="/careers" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Careers</Link></li>
                 <li><Link to="/contact-us" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Contact Us</Link></li>
@@ -80,20 +99,18 @@ const Footer = () => {
               </ul>
             </div>
 
-            {/* Legal Accessibility */}
             <div>
               <h4 className="font-semibold text-black dark:text-white mb-4 text-lg">Legal Accessibility</h4>
-              <ul className="space-y-2 text-gray-600 dark:text-gray-400" >
-                <li><Link to="Accessibility" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Accessibility Statement</Link></li>
+              <ul className="space-y-2 text-gray-600 dark:text-gray-400">
+                <li><Link to="/accessibility" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Accessibility Statement</Link></li>
                 <li><Link to="/privacy-policy" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy Policy</Link></li>
                 <li><Link to="/terms-and-conditions" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms & Conditions</Link></li>
               </ul>
             </div>
           </div>
 
-          {/* Right side (Discover & Skills) */}
           <div className="grid grid-cols-1 gap-6">
-            {/* Discover CDaX */}
+
             <div>
               <h4 className="font-semibold text-black dark:text-white mb-4 text-lg">Discover CDaX</h4>
               <ul className="space-y-3 text-gray-600 dark:text-gray-400">
@@ -103,21 +120,50 @@ const Footer = () => {
               </ul>
             </div>
 
-            {/* Top Skills & Certifications */}
+
             <div>
-              <h4 className="font-semibold text-black dark:text-white mb-4 text-lg">Explore top Skills and Certifications</h4>
-              <ul className="space-y-2 grid grid-cols-2 md:grid-cols-1 gap-x-6 text-gray-600 dark:text-gray-400">
-                <li><Link to="/skills/android" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Android Development</Link></li>
-                <li><Link to="/skills/web" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Web Development</Link></li>
-                <li><Link to="/skills/java" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Java Development</Link></li>
-                <li><Link to="/skills/python" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Python Development</Link></li>
-                <li><Link to="/skills/dotnet" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">.NET Development</Link></li>
-                <li><Link to="/skills/uiux" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">UI/UX Development</Link></li>
-                <li><Link to="/skills/aiml" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">AI / ML</Link></li>
-                <li><Link to="/skills/data" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Data Analytics</Link></li>
-                <li><Link to="/skills/testing" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Software Testing</Link></li>
-                <li><Link to="/skills/networking" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Networking</Link></li>
-              </ul>
+              <h4 className="font-semibold text-black dark:text-white mb-4 text-lg">
+                Popular Courses
+              </h4>
+              
+              {loading ? (
+                <div className="text-gray-500 dark:text-gray-400">
+                  Loading courses...
+                </div>
+              ) : error ? (
+                <div className="text-red-500 dark:text-red-400">
+                  {error}
+                </div>
+              ) : courses.length === 0 ? (
+                <div className="text-gray-500 dark:text-gray-400">
+                  No courses available
+                </div>
+              ) : (
+                <ul className="space-y-2 grid grid-cols-1 gap-x-6 text-gray-600 dark:text-gray-400">
+                  {courses.slice(0, 10).map((course) => (
+                    <li key={course.id || course._id} className="truncate">
+                      <Link 
+                        to={`/course/${course.id || course._id}`}
+                        className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors block truncate"
+                        title={course.title} 
+                      >
+                        {course.title}
+                      </Link>
+                    </li>
+                  ))}
+                  
+                  {courses.length > 10 && (
+                    <li className="mt-2">
+                      <Link 
+                        to="/courses"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                      >
+                        View All {courses.length} Courses →
+                      </Link>
+                    </li>
+                  )}
+                </ul>
+              )}
             </div>
           </div>
         </div>
@@ -127,14 +173,24 @@ const Footer = () => {
       <div className="border-t border-gray-300 dark:border-gray-700 my-6"></div>
 
       {/* Bottom footer */}
-      <div className="px-6 md:px-20 py-6 ">
-        <div className="flex flex-col items-center justify-center text-center ">
-          <div className="flex items-center space-x-4 mb-3 ">
-            <a href="https://www.facebook.com/" className="text-black dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"><FaFacebook size={20} /></a>
-            <a href="https://x.com/" className="text-black dark:text-gray-300 hover:text-blue-400 dark:hover:text-blue-400 transition-colors"><FaTwitter size={20} /></a>
-            <a href="https://www.instagram.com/" className="text-black dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"><FaInstagram size={20} /></a>
-            <a href="https://in.linkedin.com/" className="text-black dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-400 transition-colors"><FaLinkedin size={20} /></a>
-            <a href="https://www.youtube.com/" className="text-black dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"><FaYoutube size={20} /></a>
+      <div className="px-6 md:px-20 py-6">
+        <div className="flex flex-col items-center justify-center text-center">
+          <div className="flex items-center space-x-4 mb-3">
+            <a href="https://www.facebook.com/" className="text-black dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+              <FaFacebook size={20} />
+            </a>
+            <a href="https://x.com/" className="text-black dark:text-gray-300 hover:text-blue-400 dark:hover:text-blue-400 transition-colors">
+              <FaTwitter size={20} />
+            </a>
+            <a href="https://www.instagram.com/" className="text-black dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors">
+              <FaInstagram size={20} />
+            </a>
+            <a href="https://in.linkedin.com/" className="text-black dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-400 transition-colors">
+              <FaLinkedin size={20} />
+            </a>
+            <a href="https://www.youtube.com/" className="text-black dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+              <FaYoutube size={20} />
+            </a>
           </div>
           <span className="text-gray-600 dark:text-gray-400 text-xs">
             © {new Date().getFullYear()} CDaX. All rights reserved.

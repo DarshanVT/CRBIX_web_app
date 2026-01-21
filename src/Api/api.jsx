@@ -1,33 +1,68 @@
-import axios from "axios";
+// In your api.jsx or axios configuration file
+import axios from 'axios';
 
-/**
- * Central Axios instance (LOCAL BACKEND)
- */
 const api = axios.create({
-  baseURL: "https://cdaxx-backend.onrender.com/api",
+  baseURL: 'https://cdaxx-backend.onrender.com/api',
+  timeout: 15000, // Increased timeout
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
-//  ADD THIS INTERCEPTOR - It automatically adds the token
+// ✅ ADD THIS INTERCEPTOR TO INCLUDE TOKEN IN ALL REQUESTS
 api.interceptors.request.use(
   (config) => {
+    console.log('🔐 Axios Request Interceptor:');
+    console.log('   URL:', config.baseURL + config.url);
+    console.log('   Method:', config.method);
+    console.log('   Full URL:', config.url);
+    
     const token = localStorage.getItem('auth_token');
+    console.log('   Token in localStorage:', token ? 'Yes (' + token.substring(0, 20) + '...)' : 'No');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('   ✅ Authorization header added');
+    } else {
+      console.log('   ❌ No token found');
     }
+    
+    // Log params for GET requests
+    if (config.method === 'get' && config.params) {
+      console.log('   Params:', config.params);
+    }
+    
+    console.log('   Headers:', config.headers);
     return config;
   },
   (error) => {
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
+// ✅ Also add response interceptor to handle 401 errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ Axios Response Success:', {
+      status: response.status,
+      url: response.config.url,
+      method: response.config.method,
+      data: response.data
+    });
+    return response;
+  },
   (error) => {
-    console.error("API ERROR ", error.response || error.message);
+    console.error('❌ Axios Response Error:', {
+      message: error.message,
+      status: error.response?.status,
+      url: error.config?.url,
+      fullUrl: error.config?.baseURL + error.config?.url,
+      hasAuthHeader: error.config?.headers?.Authorization ? 'Yes' : 'No',
+      params: error.config?.params,
+      responseData: error.response?.data
+    });
+    
     return Promise.reject(error);
   }
 );

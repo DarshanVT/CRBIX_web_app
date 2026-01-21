@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -7,9 +7,12 @@ import {
   Lock, 
   Play, 
   Check, 
-  FileText 
+  FileText,
+  Unlock,
+  X
 } from "lucide-react";
 import { useAuth } from "../Login/AuthContext";
+import { useTheme } from "../Profile/ThemeContext";
 import {
   getCourseById,
   completeVideo,
@@ -17,43 +20,290 @@ import {
   unlockNextModule,
   canAttemptAssessment,
   getAssessmentStatus,
-  getModulesByCourse
+  getModuleAssessments
 } from "../../Api/course.api";
 import VideoPlayer from "./VideoPlayer";
 import AssessmentModal from "./AssessmentModal";
-// import AssessmentModal from "./AssessmentModal";
 
-/* -------------------- HELPERS -------------------- */
-function convertToEmbed(url, youtubeId) {
-  if (youtubeId) return `https://www.youtube.comembed/${youtubeId}`;
-  if (!url) return "";
-
-  if (url.includes("youtube.com")) {
-    const id = new URL(url).searchParams.get("v");
-    return `https://www.youtube.com/embed/${id}`;
+/* -------------------- NEW UNLOCKING LOGIC -------------------- */
+const checkVideoUnlockable = (course, moduleIndex, videoIndex) => {
+  console.log(`🔓 Checking unlockable: module=${moduleIndex}, video=${videoIndex}`);
+  
+  if (!course?.isPurchased) {
+    return moduleIndex === 0 && videoIndex === 0;
   }
-
-  if (url.includes("youtu.be")) {
-    const id = url.split("/").pop();
-    return `https://www.youtube.com/embed/${id}`;
+  
+  // Purchased user logic
+  if (moduleIndex === 0) {
+    // First module: first 3 videos always unlocked for purchased users
+    if (videoIndex < 3) return true;
+    
+    // For video 4+, check if all previous videos are completed
+    if (videoIndex >= 3) {
+      const module = course.modules?.[0];
+      if (!module || !module.videos) return false;
+      
+      // Check if ALL videos from 0 to videoIndex-1 are completed
+      for (let i = 0; i < videoIndex; i++) {
+        const prevVideo = module.videos[i];
+        if (!prevVideo || !prevVideo.isCompleted) {
+          return false;
+        }
+      }
+      return true;
+    }
   }
+  
+  // For other modules (moduleIndex > 0)
+  if (moduleIndex > 0) {
+    const currentModule = course.modules?.[moduleIndex];
+    if (!currentModule) return false;
+    
+    // Check if module is unlocked
+    if (currentModule.isLocked) return false;
+    
+    console.log(`🔓 Module ${moduleIndex} is unlocked, checking videos...`);
+    
+    // First video of unlocked module: check if it's locked
+    if (videoIndex === 0) {
+      const firstVideo = currentModule.videos?.[0];
+      if (!firstVideo) return false;
+      
+      // If first video is marked as locked in data, return false
+      if (firstVideo.isLocked) {
+        console.log(`🔓 First video is marked as locked: ${firstVideo.isLocked}`);
+        return false;
+      }
+      
+      console.log(`🔓 First video unlocked: true`);
+      return true;
+    }
+    
+    // Other videos in module: check if previous video in SAME module is completed
+    const currentVideos = currentModule?.videos || [];
+    
+    if (videoIndex > 0 && videoIndex < currentVideos.length) {
+      const previousVideo = currentVideos[videoIndex - 1];
+      const isUnlockable = previousVideo?.isCompleted || false;
+      console.log(`🔓 Video ${videoIndex} unlockable (previous completed): ${isUnlockable}`);
+      return isUnlockable;
+    }
+  }
+  
+  return false;
+};
 
-  return url;
-}
+const isModuleAssessmentAvailable = (module) => {
+  if (!module?.videos || module.videos.length === 0) return false;
+  return module.videos.every(video => video.isCompleted);
+};
+
+const isNextModuleAvailable = (course, currentModuleIndex) => {
+  if (!course || !course.modules?.[currentModuleIndex]) return false;
+  
+  const module = course.modules[currentModuleIndex];
+  const isAssessmentPassed = module.assessmentPassed || false;
+  const allVideosCompleted = module.videos?.every(v => v.isCompleted) || false;
+  
+  return allVideosCompleted && isAssessmentPassed;
+};
+
+/* -------------------- ASSESSMENT RESULT MODAL -------------------- */
+const AssessmentResultModal = ({ result, onClose, onRetake, theme }) => {
+  const passed = result?.passed;
+  const nextModuleUnlocked = result?.nextModuleUnlocked;
+  const percentage = result?.percentage || 0;
+  const obtainedMarks = result?.obtainedMarks || 0;
+  const totalMarks = result?.totalMarks || 100;
+  const message = result?.message || '';
+  
+  // Auto-close timer for success with next module
+  useEffect(() => {
+    if (passed && nextModuleUnlocked) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [passed, nextModuleUnlocked, onClose]);
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-80 dark:bg-opacity-90 z-[60] flex items-center justify-center p-4">
+      <div className={`${theme === 'dark' ? 'dark' : ''} bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl dark:shadow-gray-900/50`}>
+        {/* Header */}
+        <div className="p-8 text-center">
+          {/* Icon */}
+          <div className="relative inline-block mb-6">
+            <div className={`w-32 h-32 rounded-full flex items-center justify-center ${
+              passed 
+                ? 'bg-green-100 dark:bg-green-900/30' 
+                : 'bg-red-100 dark:bg-red-900/30'
+            }`}>
+              {passed ? (
+                <div className="w-24 h-24 bg-green-500 dark:bg-green-600 rounded-full flex items-center justify-center">
+                  <Check size={48} className="text-white" />
+                </div>
+              ) : (
+                <div className="w-24 h-24 bg-red-500 dark:bg-red-600 rounded-full flex items-center justify-center">
+                  <X size={48} className="text-white" />
+                </div>
+              )}
+            </div>
+            
+            {/* Celebration effect */}
+            {passed && (
+              <div className="absolute inset-0 animate-ping opacity-20">
+                <div className="w-full h-full rounded-full border-4 border-green-500 dark:border-green-400"></div>
+              </div>
+            )}
+          </div>
+          
+          {/* Title */}
+          <h2 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">
+            {passed ? 'Congratulations!' : 'Better Luck Next Time!'}
+          </h2>
+          
+          {/* Score */}
+          <div className="mb-6">
+            <div className="text-4xl font-bold mb-1 text-gray-900 dark:text-white">
+              {obtainedMarks}/{totalMarks}
+            </div>
+            <div className="text-2xl font-semibold text-gray-600 dark:text-gray-400">
+              {percentage.toFixed(1)}%
+            </div>
+          </div>
+          
+          {/* Next module unlocked badge */}
+          {passed && nextModuleUnlocked && (
+            <div className="mb-6">
+              <div className="inline-flex items-center gap-2 bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-4 py-2 rounded-full border border-green-200 dark:border-green-700">
+                <Unlock size={18} />
+                <span className="font-semibold">Next Module Unlocked!</span>
+              </div>
+              <p className="text-green-600 dark:text-green-400 text-sm mt-2">
+                🎉 You can now continue learning
+              </p>
+              {nextModuleUnlocked && (
+                <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">
+                  Auto-refreshing in 5 seconds...
+                </p>
+              )}
+            </div>
+          )}
+          
+          {/* Message */}
+          {message && (
+            <p className="text-gray-600 dark:text-gray-300 mb-6">{message}</p>
+          )}
+        </div>
+        
+        {/* Progress bar for passing requirement */}
+        <div className="px-8 pb-6">
+          <div className="mb-2 flex justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Passing Requirement</span>
+            <span className={`font-semibold ${
+              percentage >= 70 
+                ? 'text-green-600 dark:text-green-400' 
+                : 'text-red-600 dark:text-red-400'
+            }`}>
+              {percentage >= 70 ? '✓ Passed' : '✗ Failed'}
+            </span>
+          </div>
+          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full ${
+                percentage >= 70 
+                  ? 'bg-green-500 dark:bg-green-600' 
+                  : 'bg-red-500 dark:bg-red-600'
+              }`}
+              style={{ width: `${Math.min(percentage, 100)}%` }}
+            />
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-500 mt-1 text-center">
+            Minimum 70% required to pass
+          </div>
+        </div>
+        
+        {/* Action buttons */}
+        <div className="border-t dark:border-gray-700 p-6">
+          <div className="flex flex-col gap-3">
+            {passed && nextModuleUnlocked ? (
+              <>
+                <button
+                  onClick={onClose}
+                  className="w-full py-3 bg-blue-600 dark:bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+                >
+                  Continue Learning
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full py-2.5 text-gray-600 dark:text-gray-400 font-medium hover:text-gray-800 dark:hover:text-gray-300 transition-colors"
+                >
+                  Back to Course
+                </button>
+              </>
+            ) : passed ? (
+              <>
+                <button
+                  onClick={onClose}
+                  className="w-full py-3 bg-green-600 dark:bg-green-700 text-white font-semibold rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
+                >
+                  Great! Continue Learning
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full py-2.5 text-gray-600 dark:text-gray-400 font-medium hover:text-gray-800 dark:hover:text-gray-300 transition-colors"
+                >
+                  Back to Course
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={onRetake}
+                  className="w-full py-3 bg-blue-600 dark:bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+                >
+                  Try Again
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Back to Course
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 /* -------------------- COMPONENT -------------------- */
 export default function CourseContent({
   course: initialCourse,
   startLearning,
   setStartLearning,
+  onCourseUpdate // ADD THIS PROP
 }) {
+  console.log("🎯 CourseContent RECEIVED:", {
+    initialCourse,
+    hasInitialCourse: !!initialCourse,
+    courseId: initialCourse?.id,
+    courseTitle: initialCourse?.title,
+    modulesCount: initialCourse?.modules?.length,
+    firstModule: initialCourse?.modules?.[0],
+    firstVideo: initialCourse?.modules?.[0]?.videos?.[0]
+  });
+  
   const { isAuthenticated, openLogin, user } = useAuth();
-  const [course, setCourse] = useState(initialCourse);
+  const { theme } = useTheme();
+  const [course, setCourse] = useState(initialCourse || null);
 
   const [openModuleIndex, setOpenModuleIndex] = useState(null);
   const [openVideo, setOpenVideo] = useState(null);
   const [currentModuleId, setCurrentModuleId] = useState(null);
-  const [currentVideoId, setCurrentVideoId] = useState(null);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
   const [isVideoCompleted, setIsVideoCompleted] = useState(false);
   const [showNextOverlay, setShowNextOverlay] = useState(false);
@@ -64,64 +314,29 @@ export default function CourseContent({
   const [currentAssessment, setCurrentAssessment] = useState(null);
   const [assessmentStatus, setAssessmentStatus] = useState({});
   const [moduleAssessments, setModuleAssessments] = useState({});
+  
+  // NEW: Assessment result modal state (like mobile app)
+  const [assessmentResult, setAssessmentResult] = useState(null);
+  const [showResultModal, setShowResultModal] = useState(false);
+
+  // Sync course with parent
+  useEffect(() => {
+    if (initialCourse && JSON.stringify(initialCourse) !== JSON.stringify(course)) {
+      console.log("🔄 Syncing course from parent");
+      setCourse(initialCourse);
+    }
+  }, [initialCourse]);
 
   useEffect(() => {
     if (!openVideo) return;
     setIsVideoCompleted(openVideo.isCompleted === true);
   }, [openVideo]);
 
-  useEffect(() => {
-    setCourse(initialCourse);
-    // Load assessments for all modules
-    if (initialCourse?.modules) {
-      loadModuleAssessments(initialCourse.modules);
-    }
-  }, [initialCourse]);
-
-  useEffect(() => {
-    if (!startLearning || !course?.modules?.length) return;
-
-    for (let mi = 0; mi < course.modules.length; mi++) {
-      const module = course.modules[mi];
-      const lastVideo = module.videos?.find((v) => !v.isLocked && !v.isCompleted) || 
-                       module.videos?.find((v) => !v.isLocked);
-
-      if (lastVideo) {
-        setOpenModuleIndex(mi);
-        setOpenVideo(lastVideo);
-        setCurrentModuleId(module.id);
-        setCurrentVideoIndex(module.videos?.indexOf(lastVideo) || 0);
-        setStartLearning(false);
-        break;
-      }
-    }
-  }, [startLearning, course?.id]);
-
-  // Load assessments for modules
-  const loadModuleAssessments = async (modules) => {
-    const assessments = {};
-    
-    for (const module of modules) {
-      if (module.isLocked) continue;
-      
-      try {
-        const moduleData = await getModulesByCourse(course.id);
-        if (moduleData && moduleData.assessments) {
-          assessments[module.id] = moduleData.assessments;
-        }
-      } catch (err) {
-        console.error(`Error loading assessments for module ${module.id}:`, err);
-      }
-    }
-    
-    setModuleAssessments(assessments);
-  };
-
-  const loadAssessmentStatus = async (assessmentId) => {
+  const loadAssessmentStatus = useCallback(async (assessmentId) => {
     if (!user?.id) return;
     
     try {
-      const status = await getAssessmentStatus(assessmentId);
+      const status = await getAssessmentStatus(assessmentId, user.id);
       setAssessmentStatus(prev => ({
         ...prev,
         [assessmentId]: status
@@ -129,47 +344,99 @@ export default function CourseContent({
     } catch (err) {
       console.error("Error loading assessment status:", err);
     }
-  };
+  }, [user?.id]);
 
-  /* -------------------- AUTH CHECK -------------------- */
-  if (!isAuthenticated) {
-    return (
-      <div className="mt-10 p-6 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
-        <p className="font-semibold text-gray-800 dark:text-yellow-200 mb-2">
-          Please login to view course content
-        </p>
-        <button
-          onClick={openLogin}
-          className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors"
-        >
-          Login to Continue
-        </button>
-      </div>
-    );
-  }
-
-  /* -------------------- VIDEO CLICK -------------------- */
-  const handleVideoClick = async (video, moduleId, mi, vi) => {
-    if (video.isLocked) {
-      alert("This video is locked. Complete previous videos to unlock.");
-      return;
+  const loadModuleAssessments = useCallback(async (modules) => {
+    if (!course?.id) return;
+    
+    const assessments = {};
+    
+    for (const module of modules) {
+      if (module.isLocked) continue;
+      
+      try {
+        const assessmentsData = await getModuleAssessments(module.id, user?.id);
+        
+        if (assessmentsData && assessmentsData.length > 0) {
+          assessments[module.id] = assessmentsData[0];
+          
+          if (assessmentsData[0].id && user?.id) {
+            await loadAssessmentStatus(assessmentsData[0].id);
+          }
+        }
+      } catch (err) {
+        console.error(`Error loading assessments for module ${module.id}:`, err);
+      }
     }
+    
+    setModuleAssessments(assessments);
+  }, [course?.id, user?.id, loadAssessmentStatus]);
 
-    setOpenVideo(video);
-    setCurrentModuleId(moduleId);
-    setCurrentVideoId(video.id);
-    setOpenModuleIndex(mi);
-    setCurrentVideoIndex(vi);
-    setIsVideoCompleted(video.isCompleted === true);
-  };
+  useEffect(() => {
+    if (!startLearning || !course?.modules?.length) return;
 
-  const refreshCourse = async () => {
+    for (let mi = 0; mi < course.modules.length; mi++) {
+      const module = course.modules[mi];
+      if (module.isLocked) continue;
+      
+      for (let vi = 0; vi < (module.videos?.length || 0); vi++) {
+        const video = module.videos[vi];
+        const isUnlockable = checkVideoUnlockable(course, mi, vi);
+        
+        if (isUnlockable && !video.isLocked) {
+          setOpenModuleIndex(mi);
+          setOpenVideo(video);
+          setCurrentModuleId(module.id);
+          setCurrentVideoIndex(vi);
+          setStartLearning(false);
+          return;
+        }
+      }
+    }
+  }, [startLearning, course, setStartLearning]);
+
+  useEffect(() => {
+    if (course?.modules) {
+      loadModuleAssessments(course.modules);
+    }
+  }, [course, loadModuleAssessments]);
+
+  /* -------------------- REFRESH COURSE -------------------- */
+  const refreshCourse = useCallback(async () => {
+    if (!course?.id || !user?.id) return null;
+    
     setLoading(true);
     try {
-      const fresh = await getCourseById(course.id, user.id);
+      const fresh = await getCourseById(course.id, user?.id);
+      console.log("🔄 Refreshed course data:", {
+        id: fresh.id,
+        modules: fresh.modules?.length,
+        firstModuleLocked: fresh.modules?.[0]?.isLocked,
+        firstVideoLocked: fresh.modules?.[0]?.videos?.[0]?.isLocked
+      });
+      
+      // Log each module's status
+      fresh.modules?.forEach((module, index) => {
+        console.log(`📊 Module ${index}: ${module.title}`, {
+          isLocked: module.isLocked,
+          videos: module.videos?.map(v => ({ 
+            title: v.title, 
+            isLocked: v.isLocked,
+            isCompleted: v.isCompleted 
+          }))
+        });
+      });
+      
+      // Update local state
       setCourse(fresh);
       
-      // Refresh assessments
+      // IMPORTANT: Update parent state too
+      if (onCourseUpdate) {
+        console.log("🔄 Updating parent course state");
+        onCourseUpdate(fresh);
+      }
+      
+      // Load assessments
       if (fresh?.modules) {
         loadModuleAssessments(fresh.modules);
       }
@@ -181,126 +448,404 @@ export default function CourseContent({
     } finally {
       setLoading(false);
     }
-  };
+  }, [course?.id, user?.id, loadModuleAssessments, onCourseUpdate]);
 
-  const handleVideoCompleted = async () => {
-    if (!user?.id || !course?.id || !currentModuleId || !openVideo?.id) {
-      alert("Unable to complete video. Please try again.");
+  /* -------------------- HELPER FUNCTIONS -------------------- */
+  const unlockModuleVideos = useCallback(async (moduleId) => {
+    try {
+      console.log(`🔓 Manually unlocking videos for module: ${moduleId}`);
+      
+      const userId = localStorage.getItem("user_id");
+      if (!userId || !course?.id) return false;
+      
+      const module = course.modules?.find(m => m.id === moduleId);
+      if (!module || !module.videos || module.videos.length === 0) return false;
+      
+      const firstVideo = module.videos[0];
+      if (firstVideo && firstVideo.isLocked) {
+        console.log(`🔓 Unlocking video: ${firstVideo.id} - ${firstVideo.title}`);
+        
+        try {
+          // Call API to unlock video
+          const res = await fetch(`https://cdaxx-backend.onrender.com/api/videos/${firstVideo.id}/unlock?userId=${userId}&courseId=${course.id}&moduleId=${moduleId}`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem("auth_token")}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (res.ok) {
+            console.log('✅ Video unlocked via API');
+            
+            // Update local state immediately
+            const updatedCourse = { ...course };
+            const moduleIndex = updatedCourse.modules?.findIndex(m => m.id === moduleId);
+            
+            if (moduleIndex !== -1) {
+              const videoIndex = updatedCourse.modules[moduleIndex]?.videos?.findIndex(v => v.id === firstVideo.id);
+              if (videoIndex !== -1) {
+                updatedCourse.modules[moduleIndex].videos[videoIndex].isLocked = false;
+                setCourse(updatedCourse);
+                
+                // Update parent state
+                if (onCourseUpdate) {
+                  onCourseUpdate(updatedCourse);
+                }
+              }
+            }
+            
+            return true;
+          }
+        } catch (apiError) {
+          console.error('❌ API unlock failed:', apiError);
+          // Still update state for immediate UI feedback
+          const updatedCourse = { ...course };
+          const moduleIndex = updatedCourse.modules?.findIndex(m => m.id === moduleId);
+          
+          if (moduleIndex !== -1 && updatedCourse.modules[moduleIndex]?.videos?.[0]) {
+            updatedCourse.modules[moduleIndex].videos[0].isLocked = false;
+            setCourse(updatedCourse);
+            
+            if (onCourseUpdate) {
+              onCourseUpdate(updatedCourse);
+            }
+          }
+          return true;
+        }
+      } else if (firstVideo && !firstVideo.isLocked) {
+        console.log('✅ First video already unlocked');
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('❌ Error unlocking videos:', error);
+      return false;
+    }
+  }, [course, onCourseUpdate]);
+
+  /* -------------------- ASSESSMENT COMPLETION HANDLER -------------------- */
+  const handleAssessmentComplete = useCallback(async (result) => {
+    console.log('🎯 Assessment completed:', {
+      success: result.success,
+      passed: result.passed,
+      nextModuleUnlocked: result.nextModuleUnlocked,
+      currentAssessment: currentAssessment
+    });
+    
+    if (result.success && result.passed) {
+      const currentModuleId = currentAssessment?.moduleId;
+      
+      if (currentModuleId) {
+        console.log(`🔓 Processing assessment completion for module: ${currentModuleId}`);
+        
+        try {
+          // 1. Unlock next module via API
+          const unlocked = await unlockNextModule(course.id, currentModuleId);
+          console.log(`🔓 API unlock result: ${unlocked}`);
+          
+          if (unlocked) {
+            // 2. Find current module index
+            const currentModuleIndex = course.modules?.findIndex(m => m.id === currentModuleId);
+            console.log(`🔍 Current module index: ${currentModuleIndex}`);
+            
+            if (currentModuleIndex !== -1 && currentModuleIndex < course.modules.length - 1) {
+              const nextModuleIndex = currentModuleIndex + 1;
+              const nextModuleId = course.modules[nextModuleIndex]?.id;
+              
+              if (nextModuleId) {
+                console.log(`🔓 Next module to unlock: ${nextModuleId}`);
+                
+                // 3. Update local state for next module
+                const updatedCourse = { ...course };
+                if (updatedCourse.modules?.[nextModuleIndex]) {
+                  updatedCourse.modules[nextModuleIndex].isLocked = false;
+                  
+                  // Unlock first video of next module
+                  if (updatedCourse.modules[nextModuleIndex]?.videos?.[0]) {
+                    updatedCourse.modules[nextModuleIndex].videos[0].isLocked = false;
+                  }
+                  
+                  setCourse(updatedCourse);
+                  
+                  // Update parent state
+                  if (onCourseUpdate) {
+                    onCourseUpdate(updatedCourse);
+                  }
+                  
+                  console.log(`✅ Next module unlocked in state: ${nextModuleId}`);
+                }
+              }
+            }
+            
+            // 4. Show success message
+            const nextModuleTitle = course.modules[currentModuleIndex + 1]?.title || "Next Module";
+            
+            // Show result modal
+            setAssessmentResult({
+              ...result,
+              nextModuleUnlocked: true,
+              message: `${nextModuleTitle} is now unlocked!`
+            });
+            setShowResultModal(true);
+            
+            // 5. Refresh course data
+            setTimeout(async () => {
+              console.log('🔄 Final course refresh after assessment');
+              await refreshCourse();
+            }, 1000);
+            
+            // Close assessment modal
+            setShowAssessmentModal(false);
+            setCurrentAssessment(null);
+            return;
+          }
+          
+          // If we reach here, module wasn't unlocked but assessment passed
+          alert('✅ Assessment passed!');
+          setAssessmentResult(result);
+          setShowResultModal(true);
+          
+        } catch (error) {
+          console.error('❌ Error unlocking next module:', error);
+          alert('Assessment passed, but there was an issue unlocking the next module.');
+        }
+      } else {
+        alert('✅ Assessment passed!');
+        setAssessmentResult(result);
+        setShowResultModal(true);
+      }
+    } else if (result.success) {
+      alert('Assessment completed. Try again to pass!');
+      setAssessmentResult(result);
+      setShowResultModal(true);
+    } else {
+      alert('Assessment failed. Please try again.');
+      setAssessmentResult(result);
+      setShowResultModal(true);
+    }
+    
+    // Close the assessment modal
+    setShowAssessmentModal(false);
+    setCurrentAssessment(null);
+    
+  }, [currentAssessment, course, refreshCourse, onCourseUpdate]);
+
+  /* -------------------- AUTH CHECK -------------------- */
+  if (!isAuthenticated) {
+    return (
+      <div className={`mt-10 p-6 rounded-lg text-center ${
+        theme === 'dark' 
+          ? 'bg-yellow-900/20 border-yellow-800/30 text-yellow-200' 
+          : 'bg-yellow-50 border-yellow-100 text-gray-800'
+      } border`}>
+        <p className="font-semibold mb-2">
+          Please login to view course content
+        </p>
+        <button
+          onClick={openLogin}
+          className="mt-2 px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+        >
+          Login to Continue
+        </button>
+      </div>
+    );
+  }
+
+  /* -------------------- VIDEO CLICK -------------------- */
+const handleVideoClick = async (video, moduleId, mi, vi) => {
+  console.log(`🎬 Video click: module=${mi}, video=${vi}, isLocked=${video.isLocked}, isCompleted=${video.isCompleted}`);
+  
+  const isUnlockable = checkVideoUnlockable(course, mi, vi);
+  console.log(`🔓 Is unlockable: ${isUnlockable}`);
+  
+  if (!isUnlockable) {
+    // ... existing code ...
+    return;
+  }
+
+  // ✅ Set the video with latest state
+  setOpenVideo(video);
+  setCurrentModuleId(moduleId);
+  setCurrentVideoIndex(vi);
+  setIsVideoCompleted(video.isCompleted === true);
+  
+  // ✅ Force re-render for this video
+  const updatedCourse = { ...course };
+  const moduleIndex = updatedCourse.modules?.findIndex(m => m.id === moduleId);
+  
+  if (moduleIndex !== -1) {
+    const videoIndex = updatedCourse.modules[moduleIndex]?.videos?.findIndex(v => v.id === video.id);
+    if (videoIndex !== -1) {
+      // Update parent if needed
+      if (onCourseUpdate) {
+        onCourseUpdate(updatedCourse);
+      }
+    }
+  }
+};
+
+const handleVideoCompleted = async () => {
+  if (!user?.id || !course?.id || !currentModuleId || !openVideo?.id) {
+    alert("Unable to complete video. Please try again.");
+    return;
+  }
+
+  // ✅ 1. IMMEDIATE UI UPDATE
+  setIsVideoCompleted(true);
+  
+  // ✅ 2. Update openVideo state IMMEDIATELY
+  setOpenVideo(prev => ({
+    ...prev,
+    isCompleted: true,
+    isLocked: false
+  }));
+  
+  // ✅ 3. Update course state IMMEDIATELY for instant tick
+  const updatedCourse = JSON.parse(JSON.stringify(course));
+  const moduleIndex = updatedCourse.modules?.findIndex(m => m.id === currentModuleId);
+  
+  if (moduleIndex !== -1) {
+    const videoIndex = updatedCourse.modules[moduleIndex]?.videos?.findIndex(v => v.id === openVideo.id);
+    if (videoIndex !== -1) {
+      updatedCourse.modules[moduleIndex].videos[videoIndex].isCompleted = true;
+      updatedCourse.modules[moduleIndex].videos[videoIndex].isLocked = false;
+      
+      // ✅ 4. SET COURSE STATE IMMEDIATELY (no waiting)
+      setCourse(updatedCourse);
+      
+      // ✅ 5. Update parent state immediately for instant UI feedback
+      if (onCourseUpdate) {
+        console.log("🔄 Updating parent state after video completion");
+        onCourseUpdate(updatedCourse);
+      }
+    }
+  }
+  
+  setShowNextOverlay(true);
+
+  try {
+    // ✅ 6. API call - backend update (background mein chale)
+    await completeVideo(user.id, course.id, currentModuleId, openVideo.id);
+    
+    console.log("✅ Video marked as completed on backend");
+
+    // ✅ 7. Do a QUICK refresh to sync with backend (without loading)
+    setTimeout(async () => {
+      console.log("🔄 Quick refresh to sync with backend");
+      
+      // Silently refresh without showing loader
+      try {
+        const fresh = await getCourseById(course.id, user?.id);
+        
+        // Only update if data is different
+        if (JSON.stringify(fresh) !== JSON.stringify(updatedCourse)) {
+          setCourse(fresh);
+          if (onCourseUpdate) onCourseUpdate(fresh);
+        }
+        
+        setShowNextOverlay(false);
+
+        // Auto-play next video if available
+        const currentModule = fresh.modules?.find(m => m.id === currentModuleId);
+        if (currentModule?.videos) {
+          for (let vi = currentVideoIndex + 1; vi < currentModule.videos.length; vi++) {
+            const nextVideo = currentModule.videos[vi];
+            const isNextUnlockable = checkVideoUnlockable(fresh, openModuleIndex, vi);
+            
+            if (isNextUnlockable && !nextVideo.isLocked) {
+              handleVideoClick(nextVideo, currentModuleId, openModuleIndex, vi);
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Silent refresh error:", err);
+        setShowNextOverlay(false);
+      }
+    }, 1500); // Reduced delay
+
+  } catch (err) {
+    console.error("Error completing video:", err);
+    // Even if API fails, UI should show completed state
+    alert("Video marked as complete locally. Syncing with server may take a moment.");
+    setShowNextOverlay(false);
+  }
+};
+
+  const handleAssessmentClick = async (assessment, moduleId) => {
+    if (!assessment || !moduleId) {
+      alert('Assessment data is missing');
       return;
     }
 
-    setIsVideoCompleted(true);
-    setShowNextOverlay(true);
-
-    try {
-      // Complete video on backend
-      await completeVideo(user.id, course.id, currentModuleId, openVideo.id);
-
-      // Refresh course data
-      const freshCourse = await refreshCourse();
-
-      // Check if all videos in module are completed
-      const currentModule = freshCourse.modules?.find(m => m.id === currentModuleId);
-      const allVideosCompleted = currentModule?.videos?.every(v => !v.isLocked && v.isCompleted);
-
-      if (allVideosCompleted) {
-        // Unlock assessment if all videos completed
-        const unlockResult = await unlockAssessment(currentModuleId);
-        if (unlockResult) {
-          // Load assessment status
-          const assessments = moduleAssessments[currentModuleId];
-          if (assessments?.length > 0) {
-            loadAssessmentStatus(assessments[0].id);
-          }
-        }
-
-        // Unlock next module if available
-        const currentModuleIndex = freshCourse.modules?.findIndex(m => m.id === currentModuleId);
-        if (currentModuleIndex >= 0 && currentModuleIndex < freshCourse.modules.length - 1) {
-          const nextModule = freshCourse.modules[currentModuleIndex + 1];
-          if (nextModule?.isLocked) {
-            await unlockNextModule(course.id, currentModuleId);
-            await refreshCourse();
-          }
-        }
-      }
-
-      // Auto-proceed to next video after delay
-      setTimeout(() => {
-        setShowNextOverlay(false);
-
-        const nextVideo = currentModule?.videos?.find((v, i) => i > currentVideoIndex && !v.isLocked);
-        if (nextVideo) {
-          const nextIndex = currentModule.videos.indexOf(nextVideo);
-          handleVideoClick(nextVideo, currentModuleId, openModuleIndex, nextIndex);
-        }
-      }, 5000);
-
-    } catch (err) {
-      console.error("Error completing video:", err);
-      alert("Error completing video. Please try again.");
-      setShowNextOverlay(false);
+    if (!user?.id) {
+      alert("Please login to take assessments");
+      openLogin();
+      return;
     }
-  };
-
-  const handleAssessmentClick = async (assessment, moduleId) => {
-    if (!assessment || !moduleId) return;
 
     try {
-      // Check if user can attempt assessment
-      const canAttempt = await canAttemptAssessment(assessment.id);
+      const canAttempt = await canAttemptAssessment(assessment.id, user.id);
       
       if (!canAttempt) {
-        alert("Complete all videos in this module first to unlock the assessment.");
+        const module = course?.modules?.find(m => m.id === moduleId);
+        const totalVideos = module?.videos?.length || 0;
+        const completedVideos = module?.videos?.filter(v => v.isCompleted)?.length || 0;
+        
+        // Check if already passed
+        const status = assessmentStatus[assessment.id];
+        if (status?.passed) {
+          alert('✅ You have already passed this assessment! The next module should be unlocked.');
+          return;
+        }
+        
+        alert(`Cannot attempt assessment. Please complete all ${totalVideos - completedVideos} remaining videos in this module first.`);
         return;
       }
 
-      // Load assessment status
-      await loadAssessmentStatus(assessment.id);
-      
-      // Set current assessment and show modal
       setCurrentAssessment({
         ...assessment,
-        moduleId
+        moduleId: moduleId
       });
       setShowAssessmentModal(true);
 
     } catch (err) {
-      console.error("Error handling assessment click:", err);
-      alert("Error loading assessment. Please try again.");
+      console.error("❌ Error handling assessment click:", err);
+      alert("Failed to load assessment. Please check console for details.");
     }
   };
 
-  const handleAssessmentComplete = async (result) => {
-    // Refresh course data after assessment completion
-    await refreshCourse();
-    
-    // If assessment passed, unlock next module
-    if (result.passed && currentAssessment?.moduleId) {
-      const moduleIndex = course.modules?.findIndex(m => m.id === currentAssessment.moduleId);
-      if (moduleIndex >= 0 && moduleIndex < course.modules.length - 1) {
-        const nextModule = course.modules[moduleIndex + 1];
-        if (nextModule?.isLocked) {
-          await unlockNextModule(course.id, currentAssessment.moduleId);
-          await refreshCourse();
-        }
-      }
-    }
-    
-    setShowAssessmentModal(false);
-    setCurrentAssessment(null);
-  };
+  /* -------------------- RENDER -------------------- */
+  if (!course) {
+    return (
+      <div className={`mt-10 p-6 rounded-lg text-center border ${
+        theme === 'dark' 
+          ? 'bg-gray-800 border-gray-700 text-gray-300' 
+          : 'bg-gray-50 border-gray-200 text-gray-800'
+      }`}>
+        <p className="font-semibold mb-2">
+          Loading course content...
+        </p>
+        <div className="animate-spin h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 rounded-full mx-auto"></div>
+      </div>
+    );
+  }
 
   if (!course?.modules?.length) {
     return (
-      <div className="mt-6 p-4 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className={`mt-6 p-4 text-center rounded-lg border ${
+        theme === 'dark' 
+          ? 'bg-gray-800 border-gray-700 text-gray-400' 
+          : 'bg-gray-50 border-gray-200 text-gray-500'
+      }`}>
         <p>No course content available yet.</p>
         <p className="text-sm mt-1">Check back later for updates.</p>
       </div>
     );
   }
 
-  // Calculate module progress
   const calculateModuleProgress = (module) => {
     if (!module.videos?.length) return 0;
     const completedVideos = module.videos.filter(v => v.isCompleted).length;
@@ -314,14 +859,19 @@ export default function CourseContent({
         {course.modules.length} modules • {course.modules.reduce((total, m) => total + (m.videos?.length || 0), 0)} videos
       </p>
 
+      {/* MODULES LIST */}
       {course.modules.map((module, mi) => {
         const progress = calculateModuleProgress(module);
-        const hasAssessment = moduleAssessments[module.id]?.length > 0;
-        const assessment = hasAssessment ? moduleAssessments[module.id][0] : null;
+        const hasAssessment = !!moduleAssessments[module.id];
+        const assessment = moduleAssessments[module.id] || null;
         const assessmentStatusData = assessment ? assessmentStatus[assessment.id] : null;
 
         return (
-          <div key={module.id} className="border border-gray-200 dark:border-gray-700 rounded-lg mb-4 overflow-hidden shadow-sm dark:shadow-gray-900/50">
+          <div key={module.id} className={`border rounded-lg mb-4 overflow-hidden shadow-sm ${
+            theme === 'dark' 
+              ? 'border-gray-700 bg-gray-800' 
+              : 'border-gray-200 bg-white'
+          }`}>
             {/* MODULE HEADER */}
             <div
               onClick={() => {
@@ -333,20 +883,45 @@ export default function CourseContent({
               }}
               className={`flex justify-between items-center p-4 cursor-pointer transition-colors ${
                 module.isLocked 
-                  ? "bg-gray-100 dark:bg-gray-800" 
-                  : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  ? theme === 'dark' 
+                    ? "bg-gray-800 hover:bg-gray-750" 
+                    : "bg-gray-100 hover:bg-gray-200"
+                  : theme === 'dark'
+                    ? "bg-gray-800 hover:bg-gray-750"
+                    : "bg-white hover:bg-gray-50"
               }`}
             >
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+                  <span className={`text-sm font-medium px-2 py-1 rounded ${
+                    theme === 'dark'
+                      ? 'bg-blue-900/40 text-blue-300'
+                      : 'bg-blue-50 text-blue-600'
+                  }`}>
                     Module {mi + 1}
                   </span>
                   {module.isLocked && (
-                    <span className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded">Locked</span>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      theme === 'dark'
+                        ? 'bg-red-900/30 text-red-300'
+                        : 'bg-red-50 text-red-600'
+                    }`}>Locked</span>
+                  )}
+                  {!module.isLocked && module.videos?.[0]?.isLocked && mi > 0 && (
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      theme === 'dark'
+                        ? 'bg-yellow-900/30 text-yellow-300'
+                        : 'bg-yellow-50 text-yellow-600'
+                    }`}>
+                      Module unlocked, click first video to unlock
+                    </span>
                   )}
                   {progress === 100 && (
-                    <span className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded">Completed</span>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      theme === 'dark'
+                        ? 'bg-green-900/30 text-green-300'
+                        : 'bg-green-50 text-green-600'
+                    }`}>Completed</span>
                   )}
                 </div>
                 <p className="font-semibold text-gray-800 dark:text-white">{module.title}</p>
@@ -381,66 +956,106 @@ export default function CourseContent({
 
             {/* MODULE CONTENT */}
             {openModuleIndex === mi && !module.isLocked && (
-              <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+              <div className={`border-t ${
+                theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
+              }`}>
                 {/* VIDEOS LIST */}
                 <div className="p-4">
                   <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">Videos in this module:</h4>
-                  {module.videos?.map((video, vi) => (
-                    <div
-                      key={video.id}
-                      onClick={() => handleVideoClick(video, module.id, mi, vi)}
-                      className={`flex items-center gap-3 py-3 px-2 border-b last:border-b-0 transition-colors rounded ${
-                        video.isLocked
-                          ? "opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-900/50"
-                          : "cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                      } ${
-                        openVideo?.id === video.id 
-                          ? "bg-blue-100 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400" 
-                          : "border-gray-200 dark:border-gray-700"
-                      }`}
-                    >
-                      <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${
-                        video.isCompleted ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400" : 
-                        video.isLocked ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400" : 
-                        "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                      }`}>
-                        {video.isCompleted ? (
-                          <Check size={16} />
-                        ) : video.isLocked ? (
-                          <Lock size={14} />
-                        ) : (
-                          <Play size={14} />
-                        )}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <p className={`text-sm font-medium ${
-                          video.isCompleted 
-                            ? "text-gray-600 dark:text-gray-500" 
-                            : "text-gray-800 dark:text-gray-200"
+                  {module.videos?.map((video, vi) => {
+                    const isUnlockable = checkVideoUnlockable(course, mi, vi);
+
+                    const videoToShow = openVideo?.id === video.id ? openVideo : video;
+                    
+                    return (
+                      <div
+                        key={video.id}
+                        onClick={() => isUnlockable && handleVideoClick(video, module.id, mi, vi)}
+                        className={`flex items-center gap-3 py-3 px-2 border-b last:border-b-0 transition-colors rounded ${
+                          theme === 'dark' 
+                            ? 'border-gray-700' 
+                            : 'border-gray-200'
+                        } ${
+                          !isUnlockable || video.isLocked
+                            ? theme === 'dark'
+                              ? "opacity-60 cursor-not-allowed bg-gray-800"
+                              : "opacity-60 cursor-not-allowed bg-gray-50"
+                            : theme === 'dark'
+                              ? "cursor-pointer hover:bg-gray-750"
+                              : "cursor-pointer hover:bg-blue-50"
+                        } ${
+                          openVideo?.id === video.id ? (
+                            theme === 'dark'
+                              ? "bg-blue-900/20 border-l-4 border-blue-500"
+                              : "bg-blue-100 border-l-4 border-blue-500"
+                          ) : ""
+                        }`}
+                      >
+                        <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${
+                           videoToShow.isCompleted 
+                            ? theme === 'dark'
+                              ? "bg-green-900/40 text-green-400"
+                              : "bg-green-100 text-green-600"
+                            : !isUnlockable || video.isLocked 
+                              ? theme === 'dark'
+                                ? "bg-gray-700 text-gray-500"
+                                : "bg-gray-200 text-gray-500"
+                              : theme === 'dark'
+                                ? "bg-blue-900/40 text-blue-400"
+                                : "bg-blue-100 text-blue-600"
                         }`}>
-                          {video.title}
-                          {openVideo?.id === video.id && (
-                            <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 animate-pulse">▶ Playing</span>
+                          {video.isCompleted ? (
+                            <Check size={16} />
+                          ) : !isUnlockable || video.isLocked ? (
+                            <Lock size={14} />
+                          ) : (
+                            <Play size={14} />
                           )}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Duration: {Math.floor(video.duration / 60)}:{String(video.duration % 60).padStart(2, '0')}
-                        </p>
+                        </div>
+                        
+                        <div className="flex-1">
+                          <p className={`text-sm font-medium ${
+                            video.isCompleted 
+                              ? "text-gray-600 dark:text-gray-400" 
+                              : "text-gray-800 dark:text-white"
+                          }`}>
+                            {video.title}
+                            {openVideo?.id === video.id && (
+                              <span className="ml-2 text-xs text-blue-500 dark:text-blue-400 animate-pulse">▶ Playing</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            Duration: {Math.floor(video.duration / 60)}:{String(video.duration % 60).padStart(2, '0')}
+                          </p>
+                          {!isUnlockable && vi === 0 && mi > 0 && !video.isLocked && (
+                            <p className="text-xs text-green-500 dark:text-green-400 mt-1">
+                              ✓ Module unlocked, click to start first video
+                            </p>
+                          )}
+                          {!isUnlockable && video.isLocked && vi === 0 && mi > 0 && (
+                            <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+                              Module unlocked but video is locked. Try clicking to unlock.
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div className="flex-shrink-0">
+                          {video.isPreview && (
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              theme === 'dark'
+                                ? 'bg-yellow-900/30 text-yellow-300'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>Preview</span>
+                          )}
+                        </div>
                       </div>
-                      
-                      <div className="flex-shrink-0">
-                        {video.isPreview && (
-                          <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 px-2 py-1 rounded">Preview</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* ASSESSMENT SECTION */}
                 {hasAssessment && (
-                  <div className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <div className="mt-4 border-t dark:border-gray-700 pt-4">
                     <div className="px-4">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
@@ -450,15 +1065,23 @@ export default function CourseContent({
                         {assessmentStatusData && (
                           <span className={`text-xs px-2 py-1 rounded ${
                             assessmentStatusData.passed 
-                              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400" 
-                              : "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400"
+                              ? theme === 'dark'
+                                ? "bg-green-900/30 text-green-300"
+                                : "bg-green-100 text-green-800"
+                              : theme === 'dark'
+                                ? "bg-yellow-900/30 text-yellow-300"
+                                : "bg-yellow-100 text-yellow-800"
                           }`}>
                             {assessmentStatusData.passed ? "Passed" : "Not Passed"}
                           </span>
                         )}
                       </div>
                       
-                      <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-lg p-4">
+                      <div className={`border rounded-lg p-4 ${
+                        theme === 'dark'
+                          ? 'bg-purple-900/20 border-purple-800/30'
+                          : 'bg-purple-50 border-purple-100'
+                      }`}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <p className="font-medium text-gray-800 dark:text-white">{assessment.title || "Module Assessment"}</p>
@@ -466,39 +1089,51 @@ export default function CourseContent({
                               Test your knowledge after completing all videos in this module.
                             </p>
                             <div className="flex items-center gap-4 mt-2">
-                              {assessmentStatusData && (
+                              {assessmentStatusData && user?.id ? (
                                 <>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  <span className="text-xs text-gray-500 dark:text-gray-500">
                                     Score: {assessmentStatusData.obtainedMarks || 0}/{assessmentStatusData.totalMarks || 100}
                                   </span>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  <span className="text-xs text-gray-500 dark:text-gray-500">
                                     Attempts: {assessmentStatusData.attempts || 0}
                                   </span>
                                 </>
-                              )}
+                              ) : !user?.id ? (
+                                <span className="text-xs text-yellow-600 dark:text-yellow-400">
+                                  Login to view your scores
+                                </span>
+                              ) : null}
                             </div>
                           </div>
                           
                           <button
                             onClick={() => handleAssessmentClick(assessment, module.id)}
-                            disabled={module.videos?.some(v => !v.isCompleted && !v.isLocked)}
+                            disabled={!isModuleAssessmentAvailable(module)}
                             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                              module.videos?.some(v => !v.isCompleted && !v.isLocked)
-                                ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                                : "bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white"
+                              !isModuleAssessmentAvailable(module)
+                                ? theme === 'dark'
+                                  ? "bg-gray-700 text-gray-500 cursor-not-allowed"
+                                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                : "bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-600"
                             }`}
                           >
-                            {assessmentStatusData?.passed ? "Retake" : "Take Assessment"}
+                            {!user?.id ? "Login to Take" : 
+                             assessmentStatusData?.passed ? "Retake" : "Take Assessment"}
                           </button>
                         </div>
                         
-                        {/* Assessment requirements */}
-                        {module.videos?.some(v => !v.isCompleted && !v.isLocked) && (
-                          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700">
+                        {!isModuleAssessmentAvailable(module) && (
+                          <div className={`mt-3 text-sm p-2 rounded border ${
+                            theme === 'dark'
+                              ? 'bg-gray-800 border-gray-700 text-gray-400'
+                              : 'bg-white border-gray-200 text-gray-600'
+                          }`}>
                             ⚠️ Complete all videos in this module to unlock the assessment.
-                            {module.videos?.filter(v => !v.isCompleted && !v.isLocked).length > 0 && (
-                              <span className="text-red-600 dark:text-red-400 font-medium ml-1">
-                                {module.videos.filter(v => !v.isCompleted && !v.isLocked).length} videos remaining
+                            {module.videos?.filter(v => !v.isCompleted).length > 0 && (
+                              <span className={`font-medium ml-1 ${
+                                theme === 'dark' ? 'text-red-400' : 'text-red-600'
+                              }`}>
+                                {module.videos.filter(v => !v.isCompleted).length} videos remaining
                               </span>
                             )}
                           </div>
@@ -507,18 +1142,27 @@ export default function CourseContent({
                     </div>
                   </div>
                 )}
-
-                {/* MODULE COMPLETION STATUS */}
-                {progress === 100 && !hasAssessment && (
+                
+                {/* NEXT MODULE AVAILABLE STATUS */}
+                {isNextModuleAvailable(course, mi) && (
                   <div className="mt-4 px-4">
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <div className={`border rounded-lg p-4 ${
+                      theme === 'dark'
+                        ? 'bg-blue-900/20 border-blue-800/30'
+                        : 'bg-blue-50 border-blue-200'
+                    }`}>
                       <div className="flex items-center gap-3">
-                        <Check size={20} className="text-green-600 dark:text-green-400" />
+                        <Check size={20} className="text-blue-600 dark:text-blue-400" />
                         <div>
-                          <p className="font-medium text-green-800 dark:text-green-400">Module Completed!</p>
-                          <p className="text-sm text-green-600 dark:text-green-500 mt-1">
-                            Great job! You've completed all videos in this module.
+                          <p className="font-medium text-blue-800 dark:text-blue-300">Module Completed!</p>
+                          <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                            ✅ Assessment passed! Next module is now unlocked.
                           </p>
+                          {mi < course.modules.length - 1 && (
+                            <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
+                              First video of next module is now available.
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -533,15 +1177,14 @@ export default function CourseContent({
       {/* VIDEO PLAYER MODAL */}
       {openVideo && (
         <div className="fixed inset-0 bg-black z-50 flex flex-col">
-          <div className="h-14 flex items-center justify-between px-4 bg-gray-900 dark:bg-black">
+          <div className="h-14 flex items-center justify-between px-4 bg-gray-900">
             <div className="flex items-center">
               <button
                 onClick={() => {
                   setOpenVideo(null);
                   setCurrentModuleId(null);
-                  setCurrentVideoId(null);
                 }}
-                className="flex items-center gap-2 text-white hover:text-gray-300 transition-colors"
+                className="flex items-center gap-2 text-white hover:text-gray-300"
               >
                 <ChevronLeft size={20} />
                 <span className="text-sm">Back to Course</span>
@@ -557,7 +1200,9 @@ export default function CourseContent({
           
           {showNextOverlay && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
-              <div className="text-white text-center p-8 bg-gray-900 dark:bg-gray-800 rounded-lg max-w-md border border-gray-700">
+              <div className={`text-white text-center p-8 rounded-lg max-w-md ${
+                theme === 'dark' ? 'bg-gray-900' : 'bg-gray-900'
+              }`}>
                 <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Check size={32} />
                 </div>
@@ -567,7 +1212,7 @@ export default function CourseContent({
                 </p>
                 <button
                   onClick={() => setShowNextOverlay(false)}
-                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                  className="text-sm text-blue-400 hover:text-blue-300"
                 >
                   Skip countdown
                 </button>
@@ -576,17 +1221,19 @@ export default function CourseContent({
           )}
           
           <div className="flex-1 relative">
-            <VideoPlayer
-              courseId={course.id}
-              moduleId={currentModuleId}
-              video={openVideo}
-              onCompleted={handleVideoCompleted}
-              userId={user.id}
-            />
+     <VideoPlayer
+        courseId={course.id}
+        moduleId={currentModuleId}
+        video={openVideo}
+        onVideoCompleted={(videoId) => {
+          handleVideoCompleted();
+        }}
+        userId={user?.id}
+      />
           </div>
 
           {/* VIDEO NAVIGATION CONTROLS */}
-          <div className="bg-gray-900 dark:bg-black text-white p-4 border-t border-gray-800">
+          <div className="bg-gray-900 text-white p-4">
             <div className="flex justify-between items-center max-w-4xl mx-auto">
               <button
                 disabled={currentVideoIndex === 0}
@@ -615,15 +1262,23 @@ export default function CourseContent({
                 onClick={async () => {
                   if (!isVideoCompleted) return;
                   
-                  const next = course.modules[openModuleIndex]?.videos[currentVideoIndex + 1];
-                  if (next && !next.isLocked) {
-                    handleVideoClick(next, currentModuleId, openModuleIndex, currentVideoIndex + 1);
+                  const currentModule = course.modules[openModuleIndex];
+                  if (!currentModule?.videos) return;
+                  
+                  for (let vi = currentVideoIndex + 1; vi < currentModule.videos.length; vi++) {
+                    const nextVideo = currentModule.videos[vi];
+                    const isNextUnlockable = checkVideoUnlockable(course, openModuleIndex, vi);
+                    
+                    if (isNextUnlockable && !nextVideo.isLocked) {
+                      handleVideoClick(nextVideo, currentModuleId, openModuleIndex, vi);
+                      return;
+                    }
                   }
                 }}
                 className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
                   !isVideoCompleted 
                     ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
-                    : "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                    : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
                 Next Video
@@ -643,15 +1298,40 @@ export default function CourseContent({
             setCurrentAssessment(null);
           }}
           onComplete={handleAssessmentComplete}
-          userId={user.id}
+          userId={user?.id}
           courseId={course.id}
+          theme={theme}
+        />
+      )}
+
+      {/* ASSESSMENT RESULT MODAL (Like Mobile App) */}
+      {showResultModal && assessmentResult && (
+        <AssessmentResultModal
+          result={assessmentResult}
+          onClose={() => {
+            setShowResultModal(false);
+            setAssessmentResult(null);
+            // Refresh course data when closing result modal
+            refreshCourse();
+          }}
+          onRetake={() => {
+            setShowResultModal(false);
+            setAssessmentResult(null);
+            // Reopen assessment modal for retake
+            if (currentAssessment) {
+              setShowAssessmentModal(true);
+            }
+          }}
+          theme={theme}
         />
       )}
 
       {/* LOADING OVERLAY */}
       {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 flex flex-col items-center border border-gray-200 dark:border-gray-700">
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 flex items-center justify-center">
+          <div className={`rounded-lg p-8 flex flex-col items-center ${
+            theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+          }`}>
             <div className="animate-spin h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 rounded-full mb-4"></div>
             <p className="text-gray-700 dark:text-gray-300">Updating course data...</p>
           </div>

@@ -21,6 +21,9 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
     cPass: "",
   });
 
+  // Dark mode state from AuthContext
+  const { darkMode } = useAuth();
+
   useEffect(() => {
     if (isOpen) {
       setIsPanelActive(mode === "signup");
@@ -59,72 +62,101 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
       return;
     }
 
+    console.log("🔄 Attempting registration...");
     const res = await registerUser(formData);
+    console.log("📥 Registration response:", res);
+    
     setLoading(false);
 
     if (!res.success) {
-  setErrorMsg(res.message || "Registration failed");
-  return;
-}
+      setErrorMsg(res.message || "Registration failed");
+      return;
+    }
 
-    // SUCCESS
-    alert("Registration successful! Please login.");
-    setIsPanelActive(false); 
-    
-    setFormData(prev => ({
-      ...prev,
-      firstName: "",
-      lastName: "",
-      phoneNo: "",
-      password: "",
-      cPass: ""
-    }));
+    // ✅ SUCCESS - Auto-login after registration
+    if (res.user) {
+      console.log("✅ Registration successful, auto-login");
+      loginSuccess(res.user);
+      onClose();
+    } else {
+      // If no user data, just switch to login
+      alert("Registration successful! Please login.");
+      setIsPanelActive(false);
+      
+      // Clear password fields only
+      setFormData(prev => ({
+        ...prev,
+        password: "",
+        cPass: ""
+      }));
+    }
   };
 
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg("");
 
-const handleLoginSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setErrorMsg("");
+    if (!formData.email || !formData.password) {
+      setErrorMsg("Please enter email and password");
+      setLoading(false);
+      return;
+    }
 
-  if (!formData.email || !formData.password) {
-    setErrorMsg("Please enter email and password");
+    console.log("🔄 Attempting login...");
+    const res = await loginUser({
+      email: formData.email,
+      password: formData.password,
+    });
+
+    console.log("📥 Login response:", res);
+    
     setLoading(false);
-    return;
-  }
 
-  const res = await loginUser({
-    email: formData.email,
-    password: formData.password,
-  });
+    if (!res.success) {
+      setErrorMsg(res.message || "Login failed");
+      return;
+    }
 
-  setLoading(false);
+    // Check localStorage to see what was stored
+    console.log("🔍 After login, localStorage:", {
+      auth_token: localStorage.getItem('auth_token')?.substring(0, 20) + '...',
+      user_id: localStorage.getItem('user_id'),
+      user_info: localStorage.getItem('user_info')
+    });
 
-  if (!res.success) {
-    setErrorMsg(res.message || "Login failed");
-    return;
-  }
-
-  //  SUCCESS - Backend se user data mil raha hai
-  if (res.user) {
-    loginSuccess(res.user); //  Pass the user object
-  } else {
-    setErrorMsg("User data not received from server");
-  }
-};
+    // ✅ SUCCESS - Handle different response formats
+    if (res.user) {
+      console.log("✅ Login successful with user object");
+      loginSuccess(res.user);
+      onClose();
+    } else if (res.userId) {
+      console.log("✅ Login successful with userId");
+      loginSuccess({ id: res.userId, email: formData.email });
+      onClose();
+    } else {
+      // Try to get user from localStorage
+      const userInfo = localStorage.getItem('user_info');
+      if (userInfo) {
+        console.log("✅ Login successful, user found in localStorage");
+        loginSuccess(JSON.parse(userInfo));
+        onClose();
+      } else {
+        setErrorMsg("Login successful but no user data received");
+      }
+    }
+  };
 
   // Blue color scheme
   const darkBlue = "#1a237e";
   const fancyBlue = "#2196f3";
   const blueGradient = `linear-gradient(135deg, ${darkBlue} 0%, ${fancyBlue} 100%)`;
 
-  // Dark mode detection
-  const isDarkMode = document.documentElement.classList.contains('dark');
-
+  // Dark mode styles
   const wrapperStyles = {
-    backgroundColor: isDarkMode ? "#1f2937" : "#fff",
+    backgroundColor: darkMode ? "#1f2937" : "#fff",
     borderRadius: "20px",
-    boxShadow: isDarkMode 
+    boxShadow: darkMode 
       ? "0 20px 60px rgba(0, 0, 0, 0.5)" 
       : "0 20px 60px rgba(0, 0, 0, 0.3)",
     position: "relative",
@@ -208,7 +240,7 @@ const handleLoginSubmit = async (e) => {
   };
 
   const form = {
-    backgroundColor: isDarkMode ? "#1f2937" : "#fff",
+    backgroundColor: darkMode ? "#1f2937" : "#fff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -220,7 +252,7 @@ const handleLoginSubmit = async (e) => {
   };
 
   const input = {
-    backgroundColor: isDarkMode ? "#374151" : "#f3f4f6",
+    backgroundColor: darkMode ? "#374151" : "#f3f4f6",
     border: errorMsg ? "2px solid #ef4444" : "2px solid transparent",
     borderRadius: "12px",
     padding: "10px 14px",
@@ -229,7 +261,7 @@ const handleLoginSubmit = async (e) => {
     fontSize: "14px",
     transition: "all 0.3s ease",
     fontFamily: "'Poppins', sans-serif",
-    color: isDarkMode ? "#f3f4f6" : "#1f2937",
+    color: darkMode ? "#f3f4f6" : "#1f2937",
   };
 
   const button = {
@@ -260,7 +292,7 @@ const handleLoginSubmit = async (e) => {
   };
 
   const social = {
-    border: isDarkMode ? `2px solid #60a5fa` : `2px solid ${fancyBlue}`,
+    border: darkMode ? `2px solid #60a5fa` : `2px solid ${fancyBlue}`,
     borderRadius: "50%",
     display: "inline-flex",
     justifyContent: "center",
@@ -268,7 +300,7 @@ const handleLoginSubmit = async (e) => {
     height: "45px",
     width: "45px",
     transition: "all 0.3s ease",
-    color: isDarkMode ? "#60a5fa" : fancyBlue,
+    color: darkMode ? "#60a5fa" : fancyBlue,
     fontSize: "18px",
     textDecoration: "none",
     margin: "0 5px",
@@ -280,7 +312,7 @@ const handleLoginSubmit = async (e) => {
     fontWeight: "700",
     margin: "0 0 0px 0",
     fontSize: "28px",
-    color: isDarkMode ? "#f3f4f6" : "#333",
+    color: darkMode ? "#f3f4f6" : "#333",
     fontFamily: "'Poppins', sans-serif",
     transition: "color 0.3s",
   };
@@ -338,7 +370,7 @@ const handleLoginSubmit = async (e) => {
                 onClick={onClose}
                 className="absolute -top-10 -right-1 bg-white dark:bg-gray-800 rounded-full p-2 shadow-xl hover:bg-gray-100 dark:hover:bg-gray-700 z-[10000] transition-all duration-300"
                 style={{
-                  boxShadow: isDarkMode 
+                  boxShadow: darkMode 
                     ? "0 8px 25px rgba(0, 0, 0, 0.3)" 
                     : "0 8px 25px rgba(0, 0, 0, 0.15)",
                 }}
@@ -348,7 +380,11 @@ const handleLoginSubmit = async (e) => {
 
               {/* ERROR MESSAGE */}
               {errorMsg && (
-                <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg shadow-lg transition-colors duration-200">
+                <div className={`absolute -top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 py-3 rounded-lg shadow-lg transition-colors duration-200 ${
+                  darkMode 
+                    ? "bg-red-900/30 border border-red-800 text-red-300" 
+                    : "bg-red-50 border border-red-200 text-red-700"
+                }`}>
                   <p className="text-center font-medium">{errorMsg}</p>
                 </div>
               )}
@@ -478,7 +514,7 @@ const handleLoginSubmit = async (e) => {
                         <a
                           href="#"
                           style={{
-                            color: isDarkMode ? "#60a5fa" : fancyBlue,
+                            color: darkMode ? "#60a5fa" : fancyBlue,
                             fontSize: "14px",
                             textDecoration: "none",
                             fontFamily: "'Poppins', sans-serif",

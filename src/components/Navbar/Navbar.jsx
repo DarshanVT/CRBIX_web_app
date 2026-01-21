@@ -5,61 +5,45 @@ import { Link, useNavigate } from "react-router-dom";
 import { HiMenu, HiX } from "react-icons/hi";
 import { HiOutlineShoppingCart, HiHeart } from "react-icons/hi";
 import { HiChevronRight } from "react-icons/hi";
+
 import { useAuth } from "../Login/AuthContext";
 import { useFavorites } from "./FavoritesContext";
 import { useCart } from "./CartContext";
 import { useProfile } from "../Profile/ProfileContext";
+import { getCourses } from "../../Api/course.api";
 
-/* EXPLORE DATA */
-const exploreData = {
-  "Web Development": [
-    { name: "HTML", path: "/courses" },
-    { name: "CSS", path: "/courses/css-styling" },
-    { name: "JavaScript", path: "/courses/javascript-basics" },
-    { name: "React", path: "/courses/react-js" },
-    { name: "Node.js", path: "/courses/node-js" }
-  ],
-  "Programming Languages": [
-    "Java Programming",
-    "Python Programming",
-    "C# Programming",
-    ".NET Programming",
-    "C and C++ Programming",
-    "Data Structures and Algorithm",
-  ],
-  "Mobile Development": [
-    "Flutter Development",
-    "Dart Development",
-    "React Native",
-    "IOS Development",
-    "Android Development",
-  ],
-  "Software Testing": [
-    "Manual testing",
-    "Selenium",
-    "QA fundamentals",
-    "Python Development",
-  ],
-  "Data Analytics": [
-    "MS Excel",
-    "SQL",
-    "Python analytics",
-    "Power BI",
-    "Tableau",
-  ],
-  "Data Science": [
-    "Statistics",
-    "ML basics",
-    "Python libraries (Pandas, NumPy, Scikit-Learn)",
-  ],
-  "UI/UX Design": ["Figma", "Prototyping", "User Research", "Design Thinking"],
-  "AI & Machine Learning": [
-    "Machine learning algorithms",
-    "TensorFlow",
-    "Neural Networks",
-  ],
-  "Database Management": ["MySQL", "MongoDB", "PostGrace"],
-  "Computer Networking": ["Firewall", "AWS/Azure Cloud", "CCNA/CCNP/CCA prep "],
+/* EXPLORE DATA - Categories with keywords for better matching */
+const exploreCategories = {
+  "Web Development": {
+    keywords: ["web", "react", "javascript", "html", "css", "frontend", "backend", "node", "vue", "angular"]
+  },
+  "Programming Languages": {
+    keywords: ["java", "python", "c++", "c#", "javascript", "typescript", "go", "ruby", "swift", "kotlin", "programming"]
+  },
+  "Mobile Development": {
+    keywords: ["mobile", "android", "ios", "react native", "flutter", "kotlin", "swift", "xamarin"]
+  },
+  "Software Testing": {
+    keywords: ["testing", "qa", "selenium", "test", "automation", "manual", "java", "python", "junit", "testng"]
+  },
+  "Data Analytics": {
+    keywords: ["data", "analytics", "analysis", "sql", "excel", "power bi", "tableau", "business intelligence", "data structure", "algorithm"]
+  },
+  "Data Science": {
+    keywords: ["data science", "machine learning", "ai", "statistics", "python", "r", "tensorflow", "pytorch"]
+  },
+  "UI/UX Design": {
+    keywords: ["ui", "ux", "design", "figma", "prototype", "wireframe", "user experience", "adobe xd"]
+  },
+  "AI & Machine Learning": {
+    keywords: ["ai", "artificial intelligence", "machine learning", "deep learning", "neural network", "tensorflow", "pytorch", "nlp"]
+  },
+  "Database Management": {
+    keywords: ["database", "sql", "mysql", "mongodb", "postgresql", "oracle", "nosql", "redis"]
+  },
+  "Computer Networking": {
+    keywords: ["networking", "network", "ccna", "tcp/ip", "firewall", "security", "aws", "azure", "cloud"]
+  }
 };
 
 // Logout Confirmation Modal Component
@@ -136,8 +120,11 @@ const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
 };
 
 export default function Navbar() {
-  //  Props remove karo, sab AuthContext se lega
   const { isAuthenticated, user, logout, openLogin, openSignup } = useAuth();
+  const { favorites } = useFavorites();
+  const { cart } = useCart();
+  const { profile } = useProfile();
+  const navigate = useNavigate();
 
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -145,11 +132,65 @@ export default function Navbar() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const { favorites } = useFavorites();
-  const navigate = useNavigate();
-  const { cart } = useCart();
-  const { profile } = useProfile();
+  
+  // ✅ Courses state for explore menu
+  const [allCourses, setAllCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
+  /* ---------------- SCROLL EFFECT ---------------- */
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  /* ---------------- LOAD COURSES FOR EXPLORE MENU ---------------- */
+  useEffect(() => {
+    loadExploreCourses();
+  }, []);
+
+  const loadExploreCourses = async () => {
+    try {
+      setCoursesLoading(true);
+      const data = await getCourses();
+      console.log("Courses loaded from backend:", data); // Debug
+      setAllCourses(data || []);
+    } catch (err) {
+      console.error("Failed to load courses", err);
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
+  /* ---------------- FILTER COURSES BY CATEGORY WITH KEYWORDS ---------------- */
+  const getCoursesByCategory = (category) => {
+    if (!category || !allCourses.length) return [];
+
+    const categoryData = exploreCategories[category];
+    if (!categoryData) return [];
+
+    const keywords = categoryData.keywords || [];
+    
+    // Filter courses based on keywords in title, description, tags, or category
+    const filteredCourses = allCourses.filter((course) => {
+      const searchableText = `
+        ${course.title?.toLowerCase() || ''}
+        ${course.description?.toLowerCase() || ''}
+        ${course.category?.toLowerCase() || ''}
+        ${(course.tags || []).join(' ').toLowerCase()}
+      `;
+      
+      // Check if any keyword matches
+      return keywords.some(keyword => 
+        searchableText.includes(keyword.toLowerCase())
+      );
+    });
+
+    return filteredCourses.slice(0, 6); // Top 6 courses only
+  };
+
+  /* ---------------- AVATAR & USER INITIALS ---------------- */
   const getAvatar = () => {
     if (profile?.avatar) {
       if (typeof profile.avatar === "string") return profile.avatar;
@@ -158,39 +199,37 @@ export default function Navbar() {
     return null;
   };
 
-  //  User check remove karo - AuthContext handle karega
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Get user initials
   const getUserInitials = () => {
     if (!user) return "";
-    const firstInitial = user.firstName
-      ? user.firstName.charAt(0).toUpperCase()
-      : "";
-    const lastInitial = user.lastName
-      ? user.lastName.charAt(0).toUpperCase()
-      : "";
-    return firstInitial + lastInitial;
+    return (
+      (user.firstName?.[0] || "") +
+      (user.lastName?.[0] || "")
+    ).toUpperCase();
   };
 
-  // Handle logout confirmation
+  /* ---------------- LOGOUT HANDLERS ---------------- */
   const handleLogoutClick = () => {
     setShowUserMenu(false);
     setShowLogoutConfirm(true);
   };
 
-  // Actual logout function
   const handleLogout = () => {
-    logout(); //  AuthContext ka logout use karo
+    logout();
     setShowLogoutConfirm(false);
     setMenuOpen(false);
   };
 
-  // Close user menu when clicking outside
+  /* ---------------- SEARCH HANDLER ---------------- */
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery("");
+      setMenuOpen(false);
+    }
+  };
+
+  /* ---------------- CLOSE USER MENU ON CLICK OUTSIDE ---------------- */
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showUserMenu && !event.target.closest(".user-menu-container")) {
@@ -212,7 +251,7 @@ export default function Navbar() {
               <img src={logo} alt="CDAXX" className="h-14 md:h-16" />
             </Link>
 
-            {/* CENTER */}
+            {/* CENTER NAVIGATION */}
             <div className="hidden lg:flex flex-1 items-center gap-8 mx-4">
               <Link to="/">
                 <button className="font-medium px-2 py-1 text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
@@ -244,8 +283,8 @@ export default function Navbar() {
                 >
                   <div className="flex">
                     {/* LEFT – MAIN CATEGORIES */}
-                    <ul className="w-[320px] border-r border-gray-200 dark:border-gray-700">
-                      {Object.keys(exploreData).map((category) => (
+                    <ul className="w-[280px] border-r border-gray-200 dark:border-gray-700">
+                      {Object.keys(exploreCategories).map((category) => (
                         <li
                           key={category}
                           onMouseEnter={() => setActiveCategory(category)}
@@ -262,34 +301,75 @@ export default function Navbar() {
                       ))}
                     </ul>
 
-                    {/* RIGHT – SUB CATEGORIES */}
+                    {/* RIGHT – COURSES LIST FROM BACKEND */}
                     {activeCategory && (
                       <div className="w-[320px] p-5">
-                        <ul className="space-y-3">
-                          {exploreData[activeCategory].map((sub) => (
-                            <li
-                              key={sub}
-                              className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
-                            >
-                              <span>{sub}</span>
-                              <HiChevronRight className="text-gray-300 dark:text-gray-600" />
-                            </li>
-                          ))}
-                        </ul>
+                        {coursesLoading ? (
+                          <p className="text-sm text-gray-400">
+                            Loading courses...
+                          </p>
+                        ) : (
+                          <>
+                            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                              {activeCategory} Courses ({getCoursesByCategory(activeCategory).length})
+                            </h3>
+                            <ul className="space-y-3">
+                              {getCoursesByCategory(activeCategory).length === 0 ? (
+                                <li className="text-sm text-gray-400">
+                                  No courses available for this category
+                                </li>
+                              ) : (
+                                getCoursesByCategory(activeCategory).map((course) => (
+                                  <li
+                                    key={course.id || course._id}
+                                    onClick={() => {
+                                      navigate(`/course/${course.id || course._id}`);
+                                      setShowExplore(false);
+                                    }}
+                                    className="cursor-pointer flex justify-between items-center
+                                      text-sm text-gray-700 dark:text-gray-300
+                                      hover:text-blue-600 dark:hover:text-blue-400 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                                  >
+                                    <span className="truncate mr-2">
+                                      {course.title}
+                                    </span>
+                                    <HiChevronRight className="text-gray-300 flex-shrink-0" />
+                                  </li>
+                                ))
+                              )}
+                            </ul>
+                            {getCoursesByCategory(activeCategory).length > 0 && (
+                              <button
+                                onClick={() => {
+                                  navigate(`/courses?category=${encodeURIComponent(activeCategory)}`);
+                                  setShowExplore(false);
+                                }}
+                                className="w-full mt-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                              >
+                                View all courses →
+                              </button>
+                            )}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* SEARCH */}
-              <form className="relative flex-1 max-w-md">
+              {/* SEARCH BAR */}
+              <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
                 <input
                   type="text"
                   placeholder="Search for anything"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                 />
-                <button className="absolute right-1 top-1/2 -translate-y-1/2 bg-blue-500 dark:bg-blue-600 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
+                <button
+                  type="submit"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 bg-blue-500 dark:bg-blue-600 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
+                >
                   Search
                 </button>
               </form>
@@ -326,20 +406,19 @@ export default function Navbar() {
             <div className="hidden lg:flex items-center gap-4">
               {/* CART */}
               <Link to="/cart" className="relative group">
-                <motion.button className="flex items-center gap-1 px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
+                <button className="flex items-center gap-1 px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
                   <HiOutlineShoppingCart size={18} />
                   Cart
-                  {/* Cart count badge */}
                   {cart.length > 0 && (
                     <span className="absolute -top-2 -right-2 bg-blue-500 dark:bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                       {cart.length}
                     </span>
                   )}
-                </motion.button>
+                </button>
               </Link>
 
               {isAuthenticated && user ? (
-                // USER IS LOGGED IN - Show avatar with dropdown
+                // USER IS LOGGED IN
                 <div className="relative user-menu-container">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
@@ -501,19 +580,40 @@ export default function Navbar() {
           {/* MOBILE MENU */}
           {menuOpen && (
             <div className="lg:hidden px-4 pb-6 space-y-4 border-t border-gray-200 dark:border-gray-700 bg-[#eaf9ff] dark:bg-gray-900">
+              {/* SEARCH BAR MOBILE */}
+              <form onSubmit={handleSearch} className="pt-4">
+                <input
+                  type="text"
+                  placeholder="Search for courses..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </form>
+
               {isAuthenticated && user ? (
                 // MOBILE: USER LOGGED IN
                 <>
                   <div className="py-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-xl">
-                        {getUserInitials()}
+                        {getAvatar() ? (
+                          <img
+                            src={getAvatar()}
+                            alt="Profile"
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          getUserInitials()
+                        )}
                       </div>
                       <div>
                         <p className="font-semibold text-gray-800 dark:text-white">
                           {user.firstName} {user.lastName}
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {user.email}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -626,9 +726,11 @@ export default function Navbar() {
                   >
                     <HiOutlineShoppingCart size={18} />
                     Cart
-                    <span className="ml-auto bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs px-2 py-0.5 rounded-full">
-                      2
-                    </span>
+                    {cart.length > 0 && (
+                      <span className="ml-auto bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs px-2 py-0.5 rounded-full">
+                        {cart.length}
+                      </span>
+                    )}
                   </Link>
 
                   <button
@@ -699,9 +801,11 @@ export default function Navbar() {
                   >
                     <HiOutlineShoppingCart size={18} />
                     Cart
-                    <span className="ml-auto bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs px-2 py-0.5 rounded-full">
-                      2
-                    </span>
+                    {cart.length > 0 && (
+                      <span className="ml-auto bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs px-2 py-0.5 rounded-full">
+                        {cart.length}
+                      </span>
+                    )}
                   </Link>
 
                   {/* LOGIN/SIGNUP BUTTONS */}

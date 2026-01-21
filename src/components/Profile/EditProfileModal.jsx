@@ -7,8 +7,7 @@ export default function EditProfileModal({ profile, onClose }) {
 
   const [name, setName] = useState(profile.name);
   const [phone, setPhone] = useState(profile.phone);
-  const [avatar, setAvatar] = useState(profile.avatar || null);
-  const [preview, setPreview] = useState(profile.avatar || null);
+  const [ avatar,setAvatar] = useState(profile.avatar || null);
   const [saving, setSaving] = useState(false);
 
   const [avatarFile, setAvatarFile] = useState(null);
