@@ -1,18 +1,17 @@
-// In your api.jsx or axios configuration file
 import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'https://cdaxx-backend.onrender.com/api',
-  timeout: 15000, // Increased timeout
+  timeout: 15000, 
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// ✅ ADD THIS INTERCEPTOR TO INCLUDE TOKEN IN ALL REQUESTS
+// ADD THIS INTERCEPTOR TO INCLUDE TOKEN IN ALL REQUESTS
 api.interceptors.request.use(
   (config) => {
-    console.log('🔐 Axios Request Interceptor:');
+    console.log('   Axios Request Interceptor:');
     console.log('   URL:', config.baseURL + config.url);
     console.log('   Method:', config.method);
     console.log('   Full URL:', config.url);
@@ -22,12 +21,11 @@ api.interceptors.request.use(
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('   ✅ Authorization header added');
+      console.log('Authorization header added');
     } else {
-      console.log('   ❌ No token found');
+      console.log('No token found');
     }
-    
-    // Log params for GET requests
+ 
     if (config.method === 'get' && config.params) {
       console.log('   Params:', config.params);
     }
@@ -36,15 +34,14 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('❌ Request interceptor error:', error);
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
-// ✅ Also add response interceptor to handle 401 errors
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ Axios Response Success:', {
+    console.log('Axios Response Success:', {
       status: response.status,
       url: response.config.url,
       method: response.config.method,
@@ -53,7 +50,7 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('❌ Axios Response Error:', {
+    console.error('Axios Response Error:', {
       message: error.message,
       status: error.response?.status,
       url: error.config?.url,

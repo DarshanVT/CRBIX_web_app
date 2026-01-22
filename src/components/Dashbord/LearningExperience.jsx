@@ -44,7 +44,7 @@ export default function LearningExperience() {
         video.playbackRate = 1.5;
         video.play().catch(() => {});
       }
-    }, 150); // intentional hover delay
+    }, 150); 
   };
 
   const handleMouseLeave = (index) => {

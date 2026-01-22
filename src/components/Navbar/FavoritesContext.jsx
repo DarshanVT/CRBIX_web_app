@@ -24,7 +24,7 @@ export const FavoritesProvider = ({ children }) => {
       try {
         setLoading(true);
         const data = await getUserFavorites(user.id);
-        setFavorites(data); // List<FavoriteDTO>
+        setFavorites(data); 
       } catch (err) {
         console.error("Failed to load favorites", err);
       } finally {
@@ -45,13 +45,11 @@ export const FavoritesProvider = ({ children }) => {
 
     try {
       if (exists) {
-        // REMOVE FROM FAVORITES
         await removeFromFavorites(user.id, courseId);
         setFavorites((prev) =>
           prev.filter((fav) => fav.courseId !== courseId)
         );
       } else {
-        // ADD TO FAVORITES
         const added = await addToFavorites(user.id, courseId);
         setFavorites((prev) => [...prev, added]);
       }

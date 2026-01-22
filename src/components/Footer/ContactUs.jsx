@@ -25,7 +25,6 @@ const ContactUs = () => {
     e.preventDefault();
     setSubmitted(true);
 
-    // 🔔 Later you can connect backend or email service here
     setFormData({
       name: "",
       email: "",

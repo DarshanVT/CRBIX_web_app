@@ -61,7 +61,7 @@ export default function FavouritesPage() {
               </div>
             </div>
 
-            {/* ❤️ REMOVE FROM FAVORITES */}
+            {/*  REMOVE FROM FAVORITES */}
             <button
               onClick={(e) => {
                 e.stopPropagation();

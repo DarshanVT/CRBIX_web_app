@@ -28,13 +28,10 @@ export default function CertificationsPage() {
   };
 
   const handleDownload = (certificateId) => {
-    // Generate and download certificate as PDF (frontend-only)
-    alert(`Downloading certificate ${certificateId}`);
-    // In a real implementation, you would generate a PDF here
+    alert(`Downloading certificate ${certificateId}`);   
   };
 
   const handleShare = (certificateId) => {
-    // Share certificate functionality
     const shareUrl = `${window.location.origin}/certificate/${certificateId}`;
     navigator.clipboard.writeText(shareUrl);
     alert("Certificate link copied to clipboard!");

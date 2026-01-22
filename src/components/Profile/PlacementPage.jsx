@@ -1,4 +1,3 @@
-// src/pages/PlacementPage.jsx
 import { useState, useEffect } from "react";
 import { getPlacementJobs } from "../../Api/placement.api";
 import { HiBriefcase, HiLocationMarker, HiCurrencyDollar, HiCalendar } from "react-icons/hi";

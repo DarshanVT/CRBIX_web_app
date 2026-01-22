@@ -1,14 +1,5 @@
 import api from "./api";
 
-/**
- * FAVORITES API
- * Backend endpoints are working correctly!
- */
-
-/**
- * Get all favorite courses of a user
- * GET /favorites/{userId}
- */
 export const getUserFavorites = async (userId) => {
   try {
     const response = await api.get(`/favorites/${userId}`);
@@ -19,10 +10,6 @@ export const getUserFavorites = async (userId) => {
   }
 };
 
-/**
- * Add a course to favorites
- * POST /favorites/{userId}/add/{courseId}
- */
 export const addToFavorites = async (userId, courseId) => {
   try {
     const response = await api.post(`/favorites/${userId}/add/${courseId}`);
@@ -33,10 +20,6 @@ export const addToFavorites = async (userId, courseId) => {
   }
 };
 
-/**
- * Remove a course from favorites
- * DELETE /favorites/{userId}/remove/{courseId}
- */
 export const removeFromFavorites = async (userId, courseId) => {
   try {
     await api.delete(`/favorites/${userId}/remove/${courseId}`);
@@ -47,10 +30,6 @@ export const removeFromFavorites = async (userId, courseId) => {
   }
 };
 
-/**
- * Check if a course is already favorite
- * GET /favorites/{userId}/check/{courseId}
- */
 export const checkIsFavorite = async (userId, courseId) => {
   try {
     const response = await api.get(`/favorites/${userId}/check/${courseId}`);
@@ -61,10 +40,6 @@ export const checkIsFavorite = async (userId, courseId) => {
   }
 };
 
-/**
- * Toggle favorite status
- * Helper function for frontend
- */
 export const toggleFavorite = async (userId, courseId, isCurrentlyFavorite) => {
   try {
     if (isCurrentlyFavorite) {

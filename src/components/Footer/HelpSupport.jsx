@@ -1,5 +1,3 @@
-// src/pages/HelpSupport.jsx
-
 export default function HelpSupport() {
   return (
     <div className="min-h-screen px-6 py-12 bg-[#eaf9ff] dark:bg-gray-900">

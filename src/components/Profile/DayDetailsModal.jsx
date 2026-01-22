@@ -44,7 +44,7 @@ export default function DayDetailsModal({
     if (progress < 50) return 'Yellow: 25-50% daily progress';
     if (progress < 75) return 'Orange: 50-75% daily progress';
     if (progress < 100) return 'Dark Orange: 75-99% daily progress';
-    return 'Green: 100% daily goal achieved! 🎉';
+    return 'Green: 100% daily goal achieved! ';
   };
 
   const getProgressBarColor = () => {
@@ -54,12 +54,6 @@ export default function DayDetailsModal({
     if (progress < 75) return theme === 'dark' ? '#D97706' : '#EA580C';
     if (progress < 100) return theme === 'dark' ? '#059669' : '#10B981';
     return theme === 'dark' ? '#10B981' : '#059669';
-  };
-
-  const getStatusColor = () => {
-    return isActive ? 
-      (theme === 'dark' ? '#34D399' : '#10B981') : 
-      (theme === 'dark' ? '#9CA3AF' : '#6B7280');
   };
 
   const getVideoProgressColor = (videoProgress) => {

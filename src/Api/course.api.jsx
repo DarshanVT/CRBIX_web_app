@@ -1,98 +1,92 @@
-import axios from "axios";
 import api from "./api";
 
 /* ==================== COURSES ==================== */
 
 export const getCourses = async (userId = null) => {
   try {
-    console.log("🔍 getCourses called with userId:", userId);
-    
+    console.log(" getCourses called with userId:", userId);
+
     const params = {};
     if (userId) {
       params.userId = userId;
-      console.log("📤 Sending userId:", userId);
+      console.log(" Sending userId:", userId);
     }
 
-    console.log("🌐 Making API call to /courses with params:", params);
-    
-    // Add timeout and explicit URL for debugging
+    console.log(" Making API call to /courses with params:", params);
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    const res = await api.get("/courses", { 
+    const res = await api.get("/courses", {
       params,
-      signal: controller.signal 
+      signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
-    
-    console.log("✅ API Response received:", {
+
+    console.log(" API Response received:", {
       status: res.status,
       dataLength: res.data?.data?.length,
       firstCourse: res.data?.data?.[0],
     });
-    
+
     return res.data?.data ?? [];
   } catch (err) {
-    console.error("❌ Failed to fetch courses:", {
+    console.error(" Failed to fetch courses:", {
       error: err.message,
       isNetworkError: !err.response,
       status: err.response?.status,
       data: err.response?.data,
       config: err.config,
     });
-    
-    // Check for CORS or network issues
+
     if (err.message.includes("Network Error")) {
-      console.error("🌐 Network Error - Check if backend is running and CORS is configured");
-      console.error("🔗 Backend URL should be: http://localhost:8080");
+      console.error(
+        " Network Error - Check if backend is running and CORS is configured",
+      );
+      console.error(" Backend URL should be: http://localhost:8080");
     }
-    
+
     return [];
   }
 };
 
-// In src/Api/course.api.jsx - Update getCourseById function
 export const getCourseById = async (courseId, userId) => {
   try {
-    console.log(`📡 Fetching course ${courseId} for user ${userId}`);
-    
-    const token = localStorage.getItem('auth_token');
+    console.log(` Fetching course ${courseId} for user ${userId}`);
+
+    const token = localStorage.getItem("auth_token");
     const response = await api.get(`/courses/${courseId}`, {
       params: userId ? { userId } : {},
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     });
-    
-    console.log('✅ Course API Response:', {
+
+    console.log(" Course API Response:", {
       status: response.status,
       data: response.data,
       hasData: !!response.data,
       hasNestedData: !!response.data?.data,
       hasModules: !!response.data?.data?.modules,
-      modulesCount: response.data?.data?.modules?.length || 0
+      modulesCount: response.data?.data?.modules?.length || 0,
     });
-    
-    // Return the data in the format CourseContent expects
+
     const courseData = response.data?.data || response.data;
-    
-    // Ensure modules array exists
+
     if (courseData && !courseData.modules) {
       courseData.modules = [];
     }
-    
+
     return courseData;
-    
   } catch (error) {
-    console.error("❌ Error fetching course:", error);
-    
-    // Return basic course structure
+    console.error(" Error fetching course:", error);
+
     return {
       id: courseId,
       title: "Course",
-      modules: []
+      modules: [],
     };
   }
 };
@@ -165,7 +159,6 @@ export const clearCart = async (userId) => {
 
 export const purchaseCourse = async (courseId) => {
   try {
-    // Get userId from localStorage
     const userId = localStorage.getItem("user_id");
 
     if (!userId || userId === "null") {
@@ -194,51 +187,46 @@ export const purchaseCourse = async (courseId) => {
   }
 };
 
-// In src/Api/course.api.jsx - Update getPurchasedCourses function
 export const getPurchasedCourses = async (userId) => {
   try {
-    console.log(`📡 API: Fetching subscribed courses for user ${userId}`);
-    console.log(`🔗 Making request to: /courses/subscribed/${userId}`);
-    
-    const token = localStorage.getItem('auth_token');
-    console.log(`🔑 Token exists: ${!!token}`);
-    
-    // Create the complete URL for debugging
-    const baseUrl = api.defaults.baseURL || 'http://localhost:8080';
+    console.log(` API: Fetching subscribed courses for user ${userId}`);
+    console.log(` Making request to: /courses/subscribed/${userId}`);
+
+    const token = localStorage.getItem("auth_token");
+    console.log(` Token exists: ${!!token}`);
+
+    const baseUrl = api.defaults.baseURL || "http://localhost:8080";
     const fullUrl = `${baseUrl}/api/courses/subscribed/${userId}`;
-    console.log(`🌐 Full URL: ${fullUrl}`);
-    
+    console.log(` Full URL: ${fullUrl}`);
+
     const response = await api.get(`/courses/subscribed/${userId}`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     });
-    
-    console.log('✅ API Response - Status:', response.status);
-    console.log('✅ API Response - Headers:', response.headers);
-    console.log('✅ API Response - Data:', response.data);
-    console.log('✅ API Response - Data.data:', response.data?.data);
-    
-    // Direct return - no processing
+
+    console.log(" API Response - Status:", response.status);
+    console.log(" API Response - Headers:", response.headers);
+    console.log(" API Response - Data:", response.data);
+    console.log(" API Response - Data.data:", response.data?.data);
+
     return response.data || [];
-    
   } catch (err) {
-    console.error("❌ Get purchased courses failed:", err);
-    
+    console.error(" Get purchased courses failed:", err);
+
     if (err.response) {
-      console.error('❌ Error response:', {
+      console.error(" Error response:", {
         status: err.response.status,
         data: err.response.data,
-        url: err.response.config?.url
+        url: err.response.config?.url,
       });
     } else if (err.request) {
-      console.error('❌ No response received:', err.request);
+      console.error(" No response received:", err.request);
     } else {
-      console.error('❌ Request setup error:', err.message);
+      console.error(" Request setup error:", err.message);
     }
-    
-    // Return empty array for now
+
     return [];
   }
 };
@@ -429,7 +417,7 @@ export const updateVideoProgress = async (
   videoId,
   watchedSeconds,
   lastPositionSeconds,
-  forwardJumpsCount = 0
+  forwardJumpsCount = 0,
 ) => {
   try {
     const res = await api.post(`/videos/${videoId}/progress`, {
@@ -465,79 +453,75 @@ export const seekVideo = async (userId, videoId, seekPositionSeconds) => {
 
 export const completeVideo = async (userId, courseId, moduleId, videoId) => {
   try {
-    console.log('📝 VIDEO COMPLETION REQUEST:', {
+    console.log(" VIDEO COMPLETION REQUEST:", {
       userId,
       courseId,
       moduleId,
       videoId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
-    // Validate parameters
     if (!userId || !videoId) {
-      console.error('❌ Missing required parameters for video completion');
-      return { 
-        success: false, 
-        message: 'Missing user ID or video ID' 
+      console.error(" Missing required parameters for video completion");
+      return {
+        success: false,
+        message: "Missing user ID or video ID",
       };
     }
 
     const res = await api.post(`/videos/${videoId}/complete`, null, {
       params: {
         userId,
-        courseId: courseId || undefined, // Send undefined if null
-        moduleId: moduleId || undefined   // Send undefined if null
-      }
+        courseId: courseId || undefined,
+        moduleId: moduleId || undefined,
+      },
     });
 
-    console.log('✅ VIDEO COMPLETION RESPONSE:', {
+    console.log(" VIDEO COMPLETION RESPONSE:", {
       status: res.status,
       data: res.data,
       success: res.data?.success,
       completed: res.data?.completed,
-      unlocked: res.data?.unlocked
+      unlocked: res.data?.unlocked,
     });
 
-    // Return the full response, not just success
-    return { 
+    return {
       success: res.data?.success || false,
       completed: res.data?.completed || false,
       unlocked: res.data?.unlocked || false,
-      message: res.data?.message || 'Video completion processed',
-      data: res.data
+      message: res.data?.message || "Video completion processed",
+      data: res.data,
     };
-
   } catch (err) {
-    console.error('❌ VIDEO COMPLETION FAILED:', {
+    console.error(" VIDEO COMPLETION FAILED:", {
       error: err.message,
       status: err.response?.status,
       data: err.response?.data,
       config: err.config,
       url: err.config?.url,
-      params: err.config?.params
+      params: err.config?.params,
     });
 
-    // Check specific error types
     if (err.response?.status === 401) {
-      return { 
-        success: false, 
-        message: 'Authentication failed. Please login again.',
-        error: 'UNAUTHORIZED'
+      return {
+        success: false,
+        message: "Authentication failed. Please login again.",
+        error: "UNAUTHORIZED",
       };
     }
 
     if (err.response?.status === 400) {
-      return { 
-        success: false, 
-        message: err.response?.data?.error || 'Invalid request',
-        error: 'BAD_REQUEST'
+      return {
+        success: false,
+        message: err.response?.data?.error || "Invalid request",
+        error: "BAD_REQUEST",
       };
     }
 
-    return { 
-      success: false, 
-      message: 'Failed to complete video. Please try again.',
-      error: err.message
+    return {
+      success: false,
+      message: "Failed to complete video. Please try again.",
+      error: err.message,
     };
   }
 };
@@ -562,103 +546,82 @@ export const getAssessmentStatus = async (assessmentId) => {
 
 export const canAttemptAssessment = async (assessmentId, userId) => {
   try {
-    console.log('🔍 CAN ATTEMPT ASSESSMENT - Full Debug:');
-    console.log('   API Base URL:', api.defaults.baseURL);
-    console.log('   Assessment ID:', assessmentId);
-    console.log('   User ID:', userId);
-    
-    // Make sure we have both parameters
+    console.log(" CAN ATTEMPT ASSESSMENT - Starting call...");
+    console.log("   Assessment ID:", assessmentId);
+    console.log("   User ID:", userId);
+
     if (!assessmentId || !userId) {
-      console.error('❌ Missing parameters:', { assessmentId, userId });
+      console.error(" Missing parameters:", { assessmentId, userId });
       return false;
     }
-    
+
     const res = await api.get("/course/assessment/can-attempt", {
       params: {
         assessmentId,
-        userId
-      }
+        userId,
+      },
     });
 
-    console.log('✅ CAN ATTEMPT RESPONSE:', res.data);
+    console.log(" CAN ATTEMPT RESPONSE:", res.data);
     return res.data?.canAttempt ?? false;
-    
   } catch (err) {
-    console.error("❌ Assessment canAttempt failed:", {
+    console.error(" Assessment canAttempt failed:", {
       error: err.message,
       status: err.response?.status,
       data: err.response?.data,
       url: err.config?.url,
-      fullUrl: err.config?.baseURL + err.config?.url,
-      params: err.config?.params
+      params: err.config?.params,
     });
-    
-    // Try with absolute URL for debugging
-    console.log('🔄 Trying with absolute URL...');
-    try {
-      const absoluteRes = await axios.get('https://cdaxx-backend.onrender.com/api/course/assessment/can-attempt', {
-        params: { assessmentId, userId },
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
-      });
-      console.log('✅ Absolute URL response:', absoluteRes.data);
-      return absoluteRes.data?.canAttempt ?? false;
-    } catch (absoluteErr) {
-      console.error('❌ Absolute URL also failed:', absoluteErr.message);
-    }
-    
+
     return false;
   }
 };
 
 export const getAssessmentQuestions = async (assessmentId, userId) => {
   try {
-    console.log('🎯 GET ASSESSMENT QUESTIONS - API Call:');
-    console.log('   Assessment ID:', assessmentId);
-    console.log('   User ID:', userId);
-    
+    console.log(" GET ASSESSMENT QUESTIONS - API Call:");
+    console.log("   Assessment ID:", assessmentId);
+    console.log("   User ID:", userId);
+
     const res = await api.get("/course/assessment/questions", {
       params: {
         assessmentId,
-        userId
-      }
+        userId,
+      },
     });
 
-    console.log('✅ ASSESSMENT QUESTIONS RESPONSE:', {
+    console.log(" ASSESSMENT QUESTIONS RESPONSE:", {
       status: res.status,
       data: res.data,
       hasQuestions: Array.isArray(res.data?.questions),
-      questionCount: Array.isArray(res.data?.questions) ? res.data.questions.length : 0
+      questionCount: Array.isArray(res.data?.questions)
+        ? res.data.questions.length
+        : 0,
     });
-    
-    // Log first question details if available
+
     if (Array.isArray(res.data?.questions) && res.data.questions.length > 0) {
-      console.log('📝 First question sample:', {
+      console.log(" First question sample:", {
         id: res.data.questions[0].id,
         questionText: res.data.questions[0].questionText,
         options: res.data.questions[0].options,
-        marks: res.data.questions[0].marks
+        marks: res.data.questions[0].marks,
       });
     }
-    
+
     return res.data;
-    
   } catch (err) {
-    console.error("❌ Failed to get assessment questions:", {
+    console.error(" Failed to get assessment questions:", {
       error: err.message,
       status: err.response?.status,
       data: err.response?.data,
-      url: err.config?.url
+      url: err.config?.url,
     });
-    
-    // Return mock data for testing if API fails
-    console.warn('⚠️ Using mock questions for testing');
+
+    console.warn(" Using mock questions for testing");
     return getMockQuestions(assessmentId);
   }
 };
 
-// Mock questions for testing
 const getMockQuestions = (assessmentId) => {
   const mockQuestions = [
     {
@@ -666,13 +629,13 @@ const getMockQuestions = (assessmentId) => {
       questionText: "What is Java primarily known for?",
       options: [
         "Platform independence",
-        "Speed of execution", 
+        "Speed of execution",
         "Ease of learning",
-        "Small memory footprint"
+        "Small memory footprint",
       ],
       correctAnswer: "Platform independence",
       marks: 2,
-      assessmentId: assessmentId
+      assessmentId: assessmentId,
     },
     {
       id: 2,
@@ -680,7 +643,7 @@ const getMockQuestions = (assessmentId) => {
       options: ["class", "object", "interface", "extends"],
       correctAnswer: "object",
       marks: 2,
-      assessmentId: assessmentId
+      assessmentId: assessmentId,
     },
     {
       id: 3,
@@ -689,93 +652,87 @@ const getMockQuestions = (assessmentId) => {
         "Java Virtual Machine",
         "Java Variable Manager",
         "Java Visual Machine",
-        "Java Version Manager"
+        "Java Version Manager",
       ],
       correctAnswer: "Java Virtual Machine",
       marks: 2,
-      assessmentId: assessmentId
-    }
+      assessmentId: assessmentId,
+    },
   ];
-  
+
   return {
     success: true,
     questions: mockQuestions,
     totalQuestions: mockQuestions.length,
     totalMarks: mockQuestions.reduce((sum, q) => sum + q.marks, 0),
-    message: "Mock questions loaded for testing"
+    message: "Mock questions loaded for testing",
   };
 };
 
 export const submitAssessment = async (assessmentId, userId, answers) => {
   try {
-    console.log('📤 SUBMIT ASSESSMENT - API Call:');
-    console.log('   Assessment ID:', assessmentId);
-    console.log('   User ID:', userId);
-    console.log('   Answers object:', answers);
-    
-    // The backend expects answers in format: {questionId1: "answerText", questionId2: "answerText"}
-    // Make sure we're sending string values
+    console.log(" SUBMIT ASSESSMENT - API Call:");
+    console.log("   Assessment ID:", assessmentId);
+    console.log("   User ID:", userId);
+    console.log("   Answers object:", answers);
+
     const formattedAnswers = {};
-    Object.keys(answers).forEach(questionId => {
+    Object.keys(answers).forEach((questionId) => {
       formattedAnswers[questionId] = answers[questionId] || "";
     });
-    
-    console.log('   Formatted answers:', formattedAnswers);
-    
+
+    console.log("   Formatted answers:", formattedAnswers);
+
     const res = await api.post("/course/assessment/submit", formattedAnswers, {
       params: {
         assessmentId,
-        userId
-      }
+        userId,
+      },
     });
 
-    console.log('✅ SUBMISSION RESPONSE:', res.data);
+    console.log(" SUBMISSION RESPONSE:", res.data);
     return res.data;
-    
   } catch (err) {
-    console.error("❌ Failed to submit assessment:", {
+    console.error(" Failed to submit assessment:", {
       error: err.message,
       status: err.response?.status,
       data: err.response?.data,
-      url: err.config?.url
+      url: err.config?.url,
     });
-    
-    // Return mock result for testing if API fails
-    console.warn('⚠️ Using mock submission result for testing');
+
+    console.warn(" Using mock submission result for testing");
     return getMockSubmissionResult(assessmentId, userId, answers);
   }
 };
 
-// Mock submission result for testing
 const getMockSubmissionResult = (assessmentId, userId, answers) => {
-  console.log('🔬 Analyzing answers for mock result:', answers);
-  
-  // For testing: Let's assume correct answer is always "Option B (Correct)"
+  console.log(" Analyzing answers for mock result:", answers);
+
   let correctCount = 0;
   let totalMarks = 0;
   const questionResults = [];
-  
+
   Object.keys(answers).forEach((questionId, index) => {
     const userAnswer = answers[questionId];
     const isCorrect = userAnswer === "Option B (Correct)";
-    
+
     if (isCorrect) {
       correctCount++;
-      totalMarks += 2; // Assuming 2 marks per question
+      totalMarks += 2;
     }
-    
+
     questionResults.push({
       questionId: questionId,
       correct: isCorrect,
       userAnswer: userAnswer,
-      correctAnswer: "Option B (Correct)"
+      correctAnswer: "Option B (Correct)",
     });
   });
-  
+
   const totalQuestions = Object.keys(answers).length;
   const percentage = (correctCount / totalQuestions) * 100;
   const passed = percentage >= 70;
-  
+
   return {
     success: true,
     passed: passed,
@@ -785,59 +742,56 @@ const getMockSubmissionResult = (assessmentId, userId, answers) => {
     correctAnswers: correctCount,
     totalQuestions: totalQuestions,
     questionResults: questionResults,
-    message: passed ? "Congratulations! You passed the assessment." : "Try again to improve your score."
+    message: passed
+      ? "Congratulations! You passed the assessment."
+      : "Try again to improve your score.",
   };
 };
 
-// NEW: Get assessments by module
-// FIXED VERSION:
 export const getModuleAssessments = async (moduleId, userId = null) => {
   try {
-    console.log('📚 GET MODULE ASSESSMENTS:', {
+    console.log(" GET MODULE ASSESSMENTS:", {
       moduleId,
       userId,
-      hasToken: !!localStorage.getItem('auth_token')
+      hasToken: !!localStorage.getItem("auth_token"),
     });
 
-    const token = localStorage.getItem('auth_token');
-    
+    const token = localStorage.getItem("auth_token");
+
     const config = {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     };
 
-    // Add userId as param if provided
     if (userId) {
       config.params = { userId };
     }
 
     const res = await api.get(`/modules/${moduleId}/assessments`, config);
-    
-    console.log('✅ MODULE ASSESSMENTS RESPONSE:', {
+
+    console.log(" MODULE ASSESSMENTS RESPONSE:", {
       status: res.status,
       data: res.data,
       isArray: Array.isArray(res.data),
-      length: Array.isArray(res.data) ? res.data.length : 'not array'
+      length: Array.isArray(res.data) ? res.data.length : "not array",
     });
 
-    return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    return Array.isArray(res.data) ? res.data : res.data?.data || [];
   } catch (error) {
-    console.error(`❌ Error fetching assessments for module ${moduleId}:`, {
+    console.error(` Error fetching assessments for module ${moduleId}:`, {
       message: error.message,
       status: error.response?.status,
       data: error.response?.data,
-      url: error.config?.url
+      url: error.config?.url,
     });
-    
-    // 🔴 TEMPORARY FIX: Return mock assessments for testing
-    console.warn('⚠️ Using mock assessments for module:', moduleId);
+
+    console.warn(" Using mock assessments for module:", moduleId);
     return getMockAssessmentsForModule(moduleId);
   }
 };
 
-// Add this mock function at the bottom:
 const getMockAssessmentsForModule = (moduleId) => {
   const moduleAssessments = {
     1: [
@@ -847,10 +801,10 @@ const getMockAssessmentsForModule = (moduleId) => {
         description: "Test your understanding of Java fundamentals",
         totalMarks: 100,
         totalQuestions: 10,
-        duration: 1800, // 30 minutes
+        duration: 1800,
         passingMarks: 70,
-        moduleId: 1
-      }
+        moduleId: 1,
+      },
     ],
     2: [
       {
@@ -861,8 +815,8 @@ const getMockAssessmentsForModule = (moduleId) => {
         totalQuestions: 10,
         duration: 1800,
         passingMarks: 70,
-        moduleId: 2
-      }
+        moduleId: 2,
+      },
     ],
     3: [
       {
@@ -873,33 +827,34 @@ const getMockAssessmentsForModule = (moduleId) => {
         totalQuestions: 10,
         duration: 1800,
         passingMarks: 70,
-        moduleId: 3
-      }
-    ]
+        moduleId: 3,
+      },
+    ],
   };
-  
-  return moduleAssessments[moduleId] || [
-    {
-      id: moduleId * 100,
-      title: `Assessment - Module ${moduleId}`,
-      description: "Test your knowledge",
-      totalMarks: 100,
-      totalQuestions: 10,
-      duration: 1800,
-      passingMarks: 70,
-      moduleId: moduleId
-    }
-  ];
+
+  return (
+    moduleAssessments[moduleId] || [
+      {
+        id: moduleId * 100,
+        title: `Assessment - Module ${moduleId}`,
+        description: "Test your knowledge",
+        totalMarks: 100,
+        totalQuestions: 10,
+        duration: 1800,
+        passingMarks: 70,
+        moduleId: moduleId,
+      },
+    ]
+  );
 };
 
-// NEW: Get assessment details
 export const getAssessmentDetails = async (assessmentId) => {
   try {
     const userId = localStorage.getItem("user_id");
     if (!userId) return null;
 
     const res = await api.get(`/assessments/${assessmentId}`, {
-      params: { userId }
+      params: { userId },
     });
     return res.data;
   } catch (err) {
@@ -908,14 +863,13 @@ export const getAssessmentDetails = async (assessmentId) => {
   }
 };
 
-// NEW: Check module completion
 export const checkModuleCompletion = async (moduleId) => {
   try {
     const userId = localStorage.getItem("user_id");
     if (!userId) return false;
 
     const res = await api.get(`/modules/${moduleId}/completion`, {
-      params: { userId }
+      params: { userId },
     });
     return res.data?.completed || false;
   } catch (err) {
@@ -924,7 +878,6 @@ export const checkModuleCompletion = async (moduleId) => {
   }
 };
 
-// NEW: Check assessment unlock
 export const checkAssessmentUnlock = async (moduleId) => {
   try {
     const userId = localStorage.getItem("user_id");
@@ -933,8 +886,8 @@ export const checkAssessmentUnlock = async (moduleId) => {
     const res = await api.get(`/course/assessment/can-attempt`, {
       params: {
         userId,
-        assessmentId: moduleId
-      }
+        assessmentId: moduleId,
+      },
     });
     return res.data?.canAttempt || false;
   } catch (err) {
@@ -943,14 +896,13 @@ export const checkAssessmentUnlock = async (moduleId) => {
   }
 };
 
-// NEW: Submit assessment answer
 export const submitAssessmentAnswer = async (assessmentId, answers) => {
   try {
     const userId = localStorage.getItem("user_id");
     if (!userId) return null;
 
     const res = await api.post(`/course/assessment/submit`, answers, {
-      params: { userId, assessmentId }
+      params: { userId, assessmentId },
     });
     return res.data;
   } catch (err) {
@@ -959,18 +911,24 @@ export const submitAssessmentAnswer = async (assessmentId, answers) => {
   }
 };
 
-// NEW: Unlock next module if available
-export const unlockNextModuleIfAvailable = async (courseId, completedModuleId) => {
+export const unlockNextModuleIfAvailable = async (
+  courseId,
+  completedModuleId,
+) => {
   try {
     const userId = localStorage.getItem("user_id");
     if (!userId) return false;
 
-    const res = await api.post(`/modules/${completedModuleId}/unlock-next`, null, {
-      params: {
-        userId,
-        courseId
-      }
-    });
+    const res = await api.post(
+      `/modules/${completedModuleId}/unlock-next`,
+      null,
+      {
+        params: {
+          userId,
+          courseId,
+        },
+      },
+    );
     return res.data?.success || false;
   } catch (err) {
     console.error("Unlock next module failed:", err);
@@ -978,7 +936,6 @@ export const unlockNextModuleIfAvailable = async (courseId, completedModuleId) =
   }
 };
 
-// NEW: Get videos by module
 export const getVideosByModule = async (moduleId) => {
   try {
     const res = await api.get(`/modules/${moduleId}/videos`);
@@ -1042,7 +999,7 @@ export const getStreakDayDetails = async (courseId, date) => {
     const res = await api.get(`/streak/day/${courseId}`, {
       params: {
         userId,
-        date, 
+        date,
       },
     });
 
@@ -1053,7 +1010,6 @@ export const getStreakDayDetails = async (courseId, date) => {
   }
 };
 
-// NEW: Get month-based streak
 export const getMonthStreak = async (courseId, year, month) => {
   try {
     const userId = localStorage.getItem("user_id");
@@ -1063,8 +1019,8 @@ export const getMonthStreak = async (courseId, year, month) => {
       params: {
         userId,
         year,
-        month
-      }
+        month,
+      },
     });
     return res.data;
   } catch (err) {
@@ -1073,7 +1029,6 @@ export const getMonthStreak = async (courseId, year, month) => {
   }
 };
 
-// NEW: Get all courses with advanced search
 export const advancedSearchCourses = async (searchParams) => {
   try {
     const userId = localStorage.getItem("user_id");
@@ -1088,7 +1043,6 @@ export const advancedSearchCourses = async (searchParams) => {
   }
 };
 
-// NEW: Get popular tags
 export const getPopularTags = async () => {
   try {
     const res = await api.get("/courses/tags/popular");
@@ -1099,7 +1053,6 @@ export const getPopularTags = async () => {
   }
 };
 
-// NEW: Get courses by tag
 export const getCoursesByTag = async (tagName, userId = null) => {
   try {
     const params = {};
@@ -1113,11 +1066,10 @@ export const getCoursesByTag = async (tagName, userId = null) => {
   }
 };
 
-// NEW: Get search suggestions
 export const getSearchSuggestions = async (query) => {
   try {
     const res = await api.get("/courses/search/suggestions", {
-      params: { query }
+      params: { query },
     });
     return res.data?.suggestions ?? [];
   } catch (err) {
@@ -1126,15 +1078,19 @@ export const getSearchSuggestions = async (query) => {
   }
 };
 
-// NEW: Unlock video for user
-export const unlockVideoForUser = async (userId, courseId, moduleId, videoId) => {
+export const unlockVideoForUser = async (
+  userId,
+  courseId,
+  moduleId,
+  videoId,
+) => {
   try {
     const res = await api.post(`/videos/${videoId}/unlock`, null, {
       params: {
         userId,
         courseId,
-        moduleId
-      }
+        moduleId,
+      },
     });
     return res.data?.success || false;
   } catch (err) {
@@ -1143,14 +1099,13 @@ export const unlockVideoForUser = async (userId, courseId, moduleId, videoId) =>
   }
 };
 
-// NEW: Check if module is unlocked
 export const isModuleUnlocked = async (moduleId) => {
   try {
     const userId = localStorage.getItem("user_id");
     if (!userId) return false;
 
     const res = await api.get(`/modules/${moduleId}/unlocked`, {
-      params: { userId }
+      params: { userId },
     });
     return res.data?.unlocked || false;
   } catch (err) {
@@ -1159,14 +1114,13 @@ export const isModuleUnlocked = async (moduleId) => {
   }
 };
 
-// NEW: Get user video progress
 export const getUserVideoProgress = async (videoId) => {
   try {
     const userId = localStorage.getItem("user_id");
     if (!userId) return null;
 
     const res = await api.get(`/videos/${videoId}/user-progress`, {
-      params: { userId }
+      params: { userId },
     });
     return res.data;
   } catch (err) {
@@ -1175,7 +1129,6 @@ export const getUserVideoProgress = async (videoId) => {
   }
 };
 
-// NEW: Mark video as watched
 export const markVideoAsWatched = async (videoId, watchedSeconds) => {
   try {
     const userId = localStorage.getItem("user_id");
@@ -1184,8 +1137,8 @@ export const markVideoAsWatched = async (videoId, watchedSeconds) => {
     const res = await api.post(`/videos/${videoId}/mark-watched`, null, {
       params: {
         userId,
-        watchedSeconds
-      }
+        watchedSeconds,
+      },
     });
     return res.data?.success || false;
   } catch (err) {
@@ -1243,5 +1196,5 @@ export default {
   unlockVideoForUser,
   isModuleUnlocked,
   getUserVideoProgress,
-  markVideoAsWatched
+  markVideoAsWatched,
 };

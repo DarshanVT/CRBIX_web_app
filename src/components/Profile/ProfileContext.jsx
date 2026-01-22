@@ -2,6 +2,12 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "../Login/AuthContext";
 import { getDashboardCourses } from "../../Api/course.api";
 import api from "../../Api/api";
+import {
+  saveToLocalStorage,
+  saveAvatarToLocal,
+  getAvatarFromLocal,
+  removeFromLocalStorage,
+} from "../../utils/localStorageHelpers";
 
 const ProfileContext = createContext();
 
@@ -11,16 +17,14 @@ export const ProfileProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
 
-  // STREAK STATES (Month-based like Flutter)
   const [selectedCourseId, setSelectedCourseId] = useState(null);
   const [selectedCourseTitle, setSelectedCourseTitle] = useState(null);
   const [monthStreakData, setMonthStreakData] = useState(null);
-  const [streakData, setStreakData] = useState(null); // For backward compatibility
+  const [streakData, setStreakData] = useState(null);
   const [loadingStreak, setLoadingStreak] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [monthCache, setMonthCache] = useState({});
   const [streakError, setStreakError] = useState(null);
-
   const [loading, setLoading] = useState(false);
 
   const capitalize = (str = "") =>
@@ -34,23 +38,38 @@ export const ProfileProvider = ({ children }) => {
     setLoading(true);
 
     const userId = user.id || user._id;
+    const localAvatar = getAvatarFromLocal(userId);
 
-    setProfile({
+    console.log(" Fetching profile for user:", userId);
+    console.log(
+      " Avatar from localStorage:",
+      localAvatar ? "Found" : "Not found",
+    );
+
+    const profileData = {
       id: userId,
       name: `${capitalize(user.firstName)} ${capitalize(user.lastName)}`,
       email: user.email,
       phone: user.phoneNumber || "",
       subscribed: false,
-    });
+      avatar: localAvatar,
+    };
 
-    const courses = await getDashboardCourses(userId);
-    const enrolled = courses.filter((c) => c.isSubscribed === true);
-    setEnrolledCourses(enrolled);
+    setProfile(profileData);
 
-    if (enrolled.length > 0) {
-      const firstCourse = enrolled[0];
-      setSelectedCourseId(firstCourse.id);
-      setSelectedCourseTitle(firstCourse.title);
+    try {
+      const courses = await getDashboardCourses(userId);
+      const enrolled = courses.filter((c) => c.isSubscribed === true);
+      setEnrolledCourses(enrolled);
+
+      if (enrolled.length > 0) {
+        const firstCourse = enrolled[0];
+        setSelectedCourseId(firstCourse.id);
+        setSelectedCourseTitle(firstCourse.title);
+      }
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      setEnrolledCourses([]);
     }
 
     setLoading(false);
@@ -59,15 +78,53 @@ export const ProfileProvider = ({ children }) => {
   const updateProfile = async (updatedProfile) => {
     try {
       setLoading(true);
-      
-      setProfile((prev) => ({
-        ...prev,
+
+      const userId = user.id || user._id;
+
+      console.log(" Updating profile for user:", userId);
+
+      if (updatedProfile.avatar && updatedProfile.avatar instanceof File) {
+        console.log(" Saving new avatar to local storage");
+
+        const base64Avatar = await saveAvatarToLocal(
+          userId,
+          updatedProfile.avatar,
+        );
+
+        setProfile((prev) => ({
+          ...prev,
+          name: updatedProfile.name || prev.name,
+          phone: updatedProfile.phone || prev.phone,
+          avatar: base64Avatar,
+        }));
+
+        console.log(" Avatar saved to localStorage");
+      } else if (updatedProfile.avatar === null) {
+        console.log(" Removing avatar from localStorage");
+        removeFromLocalStorage(`user_avatar_${userId}`);
+
+        setProfile((prev) => ({
+          ...prev,
+          name: updatedProfile.name || prev.name,
+          phone: updatedProfile.phone || prev.phone,
+          avatar: null,
+        }));
+      } else {
+        console.log(" Updating profile info (no avatar change)");
+        setProfile((prev) => ({
+          ...prev,
+          name: updatedProfile.name || prev.name,
+          phone: updatedProfile.phone || prev.phone,
+        }));
+      }
+
+      saveToLocalStorage(`user_profile_${userId}`, {
+        ...profile,
         ...updatedProfile,
-        avatar: updatedProfile.avatar || prev?.avatar,
-      }));
-      
+      });
     } catch (err) {
       console.error("UPDATE PROFILE ERROR:", err);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -75,7 +132,6 @@ export const ProfileProvider = ({ children }) => {
 
   /* ================= STREAK FUNCTIONS ================= */
 
-  // For backward compatibility - 30-day streak
   const loadCourseStreak = async (courseId) => {
     const uid = user?.id || user?._id;
     if (!courseId || !uid) return;
@@ -87,18 +143,15 @@ export const ProfileProvider = ({ children }) => {
         params: {
           userId: uid,
           courseId: courseId,
-        }
+        },
       });
 
       const apiDays = res.data?.last30Days || [];
-
-      // MAP for quick lookup
       const dayMap = {};
-      apiDays.forEach(d => {
+      apiDays.forEach((d) => {
         dayMap[d.date] = d;
       });
 
-      // ALWAYS generate last 30 days
       const last30Days = [];
       for (let i = 29; i >= 0; i--) {
         const date = new Date();
@@ -109,7 +162,7 @@ export const ProfileProvider = ({ children }) => {
           dayMap[isoDate] || {
             date: isoDate,
             isActiveDay: false,
-          }
+          },
         );
       }
 
@@ -119,20 +172,17 @@ export const ProfileProvider = ({ children }) => {
       };
 
       setStreakData(data);
-      setMonthStreakData(data); // Also set to monthStreakData for new components
-
-      console.log("✅ 30-DAY STREAK LOADED:", data);
-      
+      setMonthStreakData(data);
     } catch (err) {
       console.error("STREAK ERROR:", err);
       setStreakData(null);
       setMonthStreakData(null);
+      throw err;
     } finally {
       setLoadingStreak(false);
     }
   };
 
-  // New function: Load month streak (like Flutter)
   const loadMonthStreak = async (courseId, month = null) => {
     const uid = user?.id || user?._id;
     if (!courseId || !uid) {
@@ -147,70 +197,61 @@ export const ProfileProvider = ({ children }) => {
       const targetMonth = month || currentMonth;
       const year = targetMonth.getFullYear();
       const monthNum = targetMonth.getMonth() + 1;
-      
-      // Create cache key
+
       const cacheKey = `${year}-${monthNum}-${courseId}`;
-      
-      // Check cache first
+
       if (monthCache[cacheKey]) {
-        console.log("📦 Using cached streak data for", cacheKey);
         setMonthStreakData(monthCache[cacheKey]);
-        setStreakData(monthCache[cacheKey]); // For backward compatibility
+        setStreakData(monthCache[cacheKey]);
         return;
       }
 
-      // Try month endpoint
       try {
         const res = await api.get(`/streak/course/${courseId}/month`, {
           params: {
             userId: uid,
             year: year,
-            month: monthNum
-          }
+            month: monthNum,
+          },
         });
 
         if (res.data) {
           const processedData = processMonthData(res.data, targetMonth);
-          
-          // Update cache
-          setMonthCache(prev => ({
+
+          setMonthCache((prev) => ({
             ...prev,
-            [cacheKey]: processedData
+            [cacheKey]: processedData,
           }));
-          
+
           setMonthStreakData(processedData);
-          setStreakData(processedData); // For backward compatibility
+          setStreakData(processedData);
         }
       } catch (monthErr) {
-        console.log("⚠️ Month endpoint not available, falling back to 30-day streak");
-        // Fallback to 30-day streak
+        console.log(" Falling back to 30-day streak");
         await loadCourseStreak(courseId);
       }
-
     } catch (err) {
       console.error("MONTH STREAK ERROR:", err);
       setStreakError("Failed to load streak data");
       setMonthStreakData(null);
+      throw err;
     } finally {
       setLoadingStreak(false);
     }
   };
 
-  // Process month data
   const processMonthData = (data, month) => {
     const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
     const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0);
-    
+
     let monthDays = data.monthDays || data.last30Days || [];
-    
-    // Fill missing days if needed
+
     if (monthDays.length < lastDay.getDate()) {
       monthDays = fillMissingDays(monthDays, firstDay, lastDay);
     }
-    
-    // Calculate active days
-    const activeDays = monthDays.filter(day => day.isActiveDay).length;
-    
+
+    const activeDays = monthDays.filter((day) => day.isActiveDay).length;
+
     return {
       ...data,
       monthDays,
@@ -218,26 +259,25 @@ export const ProfileProvider = ({ children }) => {
       totalDaysInMonth: lastDay.getDate(),
       monthStartDate: firstDay.toISOString(),
       monthEndDate: lastDay.toISOString(),
-      monthName: month.toLocaleString('default', { month: 'long' }),
-      year: month.getFullYear()
+      monthName: month.toLocaleString("default", { month: "long" }),
+      year: month.getFullYear(),
     };
   };
 
-  // Fill missing days in month
   const fillMissingDays = (monthDays, firstDay, lastDay) => {
     const dayMap = {};
-    monthDays.forEach(day => {
+    monthDays.forEach((day) => {
       const date = new Date(day.date);
       dayMap[date.getDate()] = day;
     });
 
     const filledDays = [];
     let currentDate = new Date(firstDay);
-    
+
     while (currentDate <= lastDay) {
       const dayNumber = currentDate.getDate();
-      const dateStr = currentDate.toISOString().split('T')[0];
-      
+      const dateStr = currentDate.toISOString().split("T")[0];
+
       if (dayMap[dayNumber]) {
         filledDays.push(dayMap[dayNumber]);
       } else {
@@ -247,17 +287,16 @@ export const ProfileProvider = ({ children }) => {
           progressPercentage: 0,
           watchedSeconds: 0,
           videoDetails: [],
-          colorCode: "#E5E7EB"
+          colorCode: "#E5E7EB",
         });
       }
-      
+
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     return filledDays;
   };
 
-  // Clear cache when course changes
   const clearStreakCache = () => {
     setMonthCache({});
     setMonthStreakData(null);
@@ -266,16 +305,14 @@ export const ProfileProvider = ({ children }) => {
 
   /* ================= MONTH NAVIGATION ================= */
 
-  // Change month
   const changeMonth = (direction) => {
-    setCurrentMonth(prev => {
+    setCurrentMonth((prev) => {
       const newMonth = new Date(prev);
       newMonth.setMonth(newMonth.getMonth() + direction);
       return newMonth;
     });
   };
 
-  // Load streak for current month and selected course
   const loadStreakForCurrentMonth = () => {
     if (selectedCourseId) {
       loadMonthStreak(selectedCourseId, currentMonth);
@@ -284,33 +321,75 @@ export const ProfileProvider = ({ children }) => {
 
   /* ================= AUTO LOAD STREAK ================= */
 
-  // When selected course changes
   useEffect(() => {
     if (selectedCourseId && user) {
-      loadCourseStreak(selectedCourseId); // For backward compatibility
+      loadCourseStreak(selectedCourseId);
     }
   }, [selectedCourseId, user]);
 
-  // When month changes (for month view)
   useEffect(() => {
     if (selectedCourseId && user) {
       loadMonthStreak(selectedCourseId, currentMonth);
     }
   }, [currentMonth]);
 
-  // Load profile on mount
   useEffect(() => {
     fetchProfile();
   }, [user]);
 
   const clearProfile = () => {
+    console.log(
+      " Clearing profile STATE only (keeping avatar in localStorage)",
+    );
+
     setProfile(null);
     setEnrolledCourses([]);
     setStreakData(null);
     setMonthStreakData(null);
     setSelectedCourseId(null);
+    setSelectedCourseTitle(null);
     setMonthCache({});
     setStreakError(null);
+  };
+
+  const clearAvatar = () => {
+    const userId = user?.id || user?._id;
+    if (userId) {
+      console.log(" Manually clearing avatar for user:", userId);
+      removeFromLocalStorage(`user_avatar_${userId}`);
+      setProfile((prev) => ({
+        ...prev,
+        avatar: null,
+      }));
+    }
+  };
+
+  const clearAllUserData = () => {
+    const userId = user?.id || user?._id;
+    if (userId) {
+      console.log(" Clearing ALL data for user:", userId);
+
+      removeFromLocalStorage(`user_avatar_${userId}`);
+      removeFromLocalStorage(`user_profile_${userId}`);
+
+      Object.keys(localStorage).forEach((key) => {
+        if (
+          key.includes(`streak_${userId}`) ||
+          key.includes(`month_streak_${userId}`)
+        ) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      setProfile(null);
+      setEnrolledCourses([]);
+      setStreakData(null);
+      setMonthStreakData(null);
+      setSelectedCourseId(null);
+      setSelectedCourseTitle(null);
+      setMonthCache({});
+      setStreakError(null);
+    }
   };
 
   return (
@@ -320,19 +399,17 @@ export const ProfileProvider = ({ children }) => {
         enrolledCourses,
         loading,
 
-        // STREAK - For backward compatibility
         streakData,
         loadingStreak,
         selectedCourseId,
         setSelectedCourseId: (courseId) => {
-          const course = enrolledCourses.find(c => c.id === courseId);
+          const course = enrolledCourses.find((c) => c.id === courseId);
           setSelectedCourseId(courseId);
           setSelectedCourseTitle(course?.title || null);
           clearStreakCache();
         },
-        loadCourseStreak, // ✅ This function is now available
+        loadCourseStreak,
 
-        // NEW - Month-based streak (like Flutter)
         monthStreakData,
         streakError,
         selectedCourseTitle,
@@ -341,10 +418,11 @@ export const ProfileProvider = ({ children }) => {
         loadStreakForCurrentMonth,
         clearStreakCache,
         loadMonthStreak,
-
         fetchProfile,
         updateProfile,
         clearProfile,
+        clearAvatar,
+        clearAllUserData,
       }}
     >
       {children}

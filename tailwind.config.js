@@ -3,7 +3,7 @@ module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
-  darkMode: 'class', // ← Added this line
+  darkMode: 'class', 
   theme: {
     extend: {
       keyframes: {
@@ -16,7 +16,7 @@ module.exports = {
         slideIn: "slideIn 0.6s ease-out forwards",
       },
       colors: {
-        // Optional: You can define custom colors for dark mode
+        
         dark: {
           50: '#f8fafc',
           100: '#f1f5f9',

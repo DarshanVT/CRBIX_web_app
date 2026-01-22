@@ -1,24 +1,37 @@
-// File: src/contexts/ThemeContext.jsx
 import { createContext, useContext, useEffect, useState } from 'react';
 
 const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    // Check localStorage first, then system preference
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) return savedTheme;
-    
-    // Check system preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    
-    return 'light'; // default
+    return 'system'; 
   });
 
+  const getAppliedTheme = () => {
+    if (theme === 'system') {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return theme;
+  };
+
+  // Toggle between light/dark (for the small button in StreakGrid)
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    setTheme(prev => {
+      if (prev === 'system') {
+        // If currently on system, switch to opposite of system preference
+        const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return systemPrefersDark ? 'light' : 'dark';
+      }
+      // If not on system, toggle between light/dark
+      return prev === 'light' ? 'dark' : 'light';
+    });
+  };
+
+  // Set specific theme (for SettingsPage)
+  const setSpecificTheme = (newTheme) => {
+    setTheme(newTheme);
   };
 
   useEffect(() => {
@@ -28,25 +41,42 @@ export function ThemeProvider({ children }) {
     // Apply theme to document
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
-    root.classList.add(theme);
+    
+    if (theme === 'system') {
+      // Apply system preference
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        root.classList.add('dark');
+      } else {
+        root.classList.add('light');
+      }
+    } else {
+      root.classList.add(theme);
+    }
   }, [theme]);
 
-  // Listen for system theme changes
+  // Listen for system theme changes (only matters when theme is 'system')
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     
     const handleChange = (e) => {
-      if (!localStorage.getItem('theme')) {
-        setTheme(e.matches ? 'dark' : 'light');
+      if (theme === 'system') {
+        const root = window.document.documentElement;
+        root.classList.remove('light', 'dark');
+        root.classList.add(e.matches ? 'dark' : 'light');
       }
     };
     
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+  }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ 
+      theme, 
+      getAppliedTheme,
+      toggleTheme, 
+      setSpecificTheme 
+    }}>
       {children}
     </ThemeContext.Provider>
   );

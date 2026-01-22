@@ -50,8 +50,7 @@ export default function CoursesPage() {
       setError(null);
       
       console.log(" Loading courses from ProfileContext");
-      
-      // ProfileContext se courses fetch karo
+
       await fetchProfile();
       
       console.log(" Courses loaded from ProfileContext:", enrolledCourses);
@@ -109,7 +108,6 @@ export default function CoursesPage() {
     : 0;
 
   const currentStreak = streakData?.currentStreak || 0;
-  const longestStreak = streakData?.longestStreak || 0;
 
   if (!isAuthenticated) {
     return (
@@ -389,7 +387,6 @@ export default function CoursesPage() {
                   const progress = course.progressPercentage || course.progressPercent || 0;
                   const isCompleted = progress === 100;
                   const isInProgress = progress > 0 && progress < 100;
-                  const isNotStarted = progress === 0;
 
                   const hasStreak = selectedCourseId === course.id && streakData;
                   

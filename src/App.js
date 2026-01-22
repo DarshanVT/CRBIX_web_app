@@ -1,6 +1,4 @@
-// src/App.js
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useState, useEffect } from "react";
 import Footer from "./components/Footer/Footer";
 import HomeSections from "./pages/Home";
 import ScrollToTop from "./components/ScrollToTop";
@@ -8,13 +6,10 @@ import Navbar from "./components/Navbar/Navbar";
 import { CartProvider } from "./components/Navbar/CartContext";
 import { AuthProvider, useAuth } from "./components/Login/AuthContext";
 import Cart from "./pages/Cart";
-import PrivacyPolicy from "./pages/privacyPolicy";
+import PrivacyPolicy from "./components/Footer/privacyPolicy";
 import CourseDetails from "./pages/CourseDetails";
-
-import { checkServerStatus } from "./Api/auth.api";
 import Payment from "./pages/Payment";
 import { FavoritesProvider } from "./components/Navbar/FavoritesContext";
-
 import { ProfileProvider } from "./components/Profile/ProfileContext";
 import ProfilePage from "./pages/ProfilePage";
 import Investors from "./components/Footer/Investors";
@@ -38,23 +33,6 @@ import { ThemeProvider } from "./components/Profile/ThemeContext";
 
 function AppContent() {
   const { authOpen, authMode, openLogin, openSignup, closeAuth } = useAuth();
-
-  useEffect(() => {
-    // Check server connection on app load
-    checkServerStatus().then((isRunning) => {
-      if (!isRunning) {
-        console.error("Backend server is not running!");
-        // Optional: show alert only in development
-        if (process.env.NODE_ENV === "development") {
-          alert(
-            "⚠️ Backend server is not running. Please start the Spring Boot application on port 8080."
-          );
-        }
-      } else {
-        console.log(" Backend server is running");
-      }
-    });
-  }, []);
 
   return (
     <CartProvider>

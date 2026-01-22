@@ -38,7 +38,6 @@ export default function Payment() {
 
       alert("Payment Successful 🎉");
 
-      // Redirect to first purchased course
       navigate(`/course/${selectedCourses[0].id}`, { replace: true });
     } catch (err) {
       console.error(err);

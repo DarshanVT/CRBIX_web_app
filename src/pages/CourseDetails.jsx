@@ -1,12 +1,11 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
-import { Star, Users, Clock, Award, Check, Sun, Moon } from "lucide-react";
+import { Star, Users, Clock, Award, Check } from "lucide-react";
 import { useCart } from "../components/Navbar/CartContext";
 import { useAuth } from "../components/Login/AuthContext";
 import { useTheme } from "../components/Profile/ThemeContext";
 import CourseContent from "../components/Courses/CourseContent";
 
-/* ------------------ Static Reviews ------------------ */
 const REVIEWS = [
   {
     name: "Priya Sharma",
@@ -86,7 +85,7 @@ function HeroCarousel({ slides, theme }) {
 const COURSE_MAPPING = {
   '1': {
     title: 'Complete Java Programming',
-    author: 'Dr. Darshan Tanpure ',
+    author: 'Dr. Naseer peerzade ',
     price: 399,
     originalPrice: 1999,
     rating: 4.7,
@@ -134,7 +133,7 @@ const COURSE_MAPPING = {
   },
   '5': {
     title: 'C# .NET Development',
-    author: 'Dr. Darshan Tanpure',
+    author: 'Dr. Naseer peerzade',
     price: 1699,
     originalPrice: 2299,
     rating: 4.4,
@@ -174,7 +173,7 @@ const COURSE_MAPPING = {
 const getCourseDetailsById = (courseId) => {
   return COURSE_MAPPING[courseId] || {
     title: `Course ${courseId}`,
-    author: 'Instructor',
+    author: 'Dr. Naseer peerzade',
     price: 999,
     originalPrice: 1999,
     rating: 4.5,
@@ -192,7 +191,7 @@ export default function CourseDetails() {
   const navigate = useNavigate();
   const { user, isAuthenticated, openLogin } = useAuth();
   const { addToCart, cart } = useCart();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -202,9 +201,8 @@ export default function CourseDetails() {
 
   const alreadyInCart = cart.some((c) => c.id === course?.id);
 
-  // Debug effect to track course state changes
   useEffect(() => {
-    console.log("📊 Course state updated:", {
+    console.log("Course state updated:", {
       courseId: course?.id,
       courseTitle: course?.title,
       requestedId: id,
@@ -216,16 +214,16 @@ export default function CourseDetails() {
   const loadCourse = useCallback(async () => {
     setLoading(true);
     try {
-      console.log("🚀 START: Loading course for ID:", id);
+      console.log(" START: Loading course for ID:", id);
       
       const userId = user?.id || localStorage.getItem("user_id");
-      console.log("📱 User ID:", userId);
+      console.log(" User ID:", userId);
       
       // Try to fetch from backend first
       const token = localStorage.getItem("auth_token");
       const url = `https://cdaxx-backend.onrender.com/api/courses/${id}${userId ? `?userId=${userId}` : ''}`;
       
-      console.log("🔗 Fetching from backend:", url);
+      console.log(" Fetching from backend:", url);
       
       const response = await fetch(url, {
         headers: {
@@ -236,15 +234,13 @@ export default function CourseDetails() {
       
       if (response.ok) {
         const apiData = await response.json();
-        console.log("✅ Backend response received");
-        
-        // Extract course from response
+        console.log(" Backend response received");
+
         const actualCourse = apiData.data || apiData;
         
         if (actualCourse && actualCourse.id) {
-          console.log("🎯 Course data from backend:", actualCourse.title);
-          
-          // Format course for CourseContent component
+          console.log(" Course data from backend:", actualCourse.title);
+
           const formattedCourse = {
             id: actualCourse.id,
             title: actualCourse.title,
@@ -302,7 +298,7 @@ export default function CourseDetails() {
       }
       
       // If backend fetch fails, use local mapping
-      console.log("⚠️ Backend fetch failed, using local course data for ID:", id);
+      console.log(" Backend fetch failed, using local course data for ID:", id);
       
       const courseDetails = getCourseDetailsById(id);
       
@@ -379,16 +375,15 @@ export default function CourseDetails() {
         tags: courseDetails.tags
       };
       
-      console.log("✅ Local course created:", localCourse.title);
+      console.log(" Local course created:", localCourse.title);
       setCourse(localCourse);
       
     } catch (err) {
-      console.error("❌ ERROR loading course:", err);
-      
-      // Ultimate fallback - still use the correct course ID
+      console.error(" ERROR loading course:", err);
+    
       const courseDetails = getCourseDetailsById(id);
       
-      console.log("🛠️ Creating fallback course for:", courseDetails.title);
+      console.log(" Creating fallback course for:", courseDetails.title);
       
       const minimalCourse = {
         id: parseInt(id) || 1,
@@ -432,16 +427,15 @@ export default function CourseDetails() {
       
       setCourse(minimalCourse);
     } finally {
-      console.log("🏁 FINISHED: Setting loading to false");
+      console.log(" FINISHED: Setting loading to false");
       setLoading(false);
     }
   }, [id, user?.id, theme]);
 
   useEffect(() => {
-    console.log("📅 CourseDetails mounted for course ID:", id);
+    console.log(" CourseDetails mounted for course ID:", id);
     window.scrollTo(0, 0);
     
-    // Reset course when ID changes
     setCourse(null);
     setLoading(true);
     
@@ -537,14 +531,6 @@ export default function CourseDetails() {
     <div className={`min-h-screen ${
       theme === 'dark' ? 'bg-gray-900' : 'bg-[#eaf9ff]'
     } text-gray-900 dark:text-white pt-10 pb-10 relative transition-colors duration-300`}>
-      {/* Theme Toggle */}
-      {/* <button
-        onClick={toggleTheme}
-        className="fixed top-24 right-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 p-3 rounded-full shadow-lg z-50 transition-colors duration-200 flex items-center justify-center"
-        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-      >
-        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-      </button> */}
 
       {/* Popup */}
       {showPopup && (

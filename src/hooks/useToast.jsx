@@ -1,4 +1,3 @@
-// src/hooks/useToast.jsx
 import { useState, useCallback } from 'react';
 
 export const useToast = () => {
@@ -13,8 +12,7 @@ export const useToast = () => {
     };
     
     setToast(newToast);
-    
-    // Auto-hide after duration
+
     setTimeout(() => {
       setToast(null);
     }, duration);

@@ -748,7 +748,6 @@ export default function DomeGallery({
 
   const handleClosePopup = useCallback(() => {
     setPopupOpen(false);
-    // Small delay before clearing course data for smooth animation
     setTimeout(() => {
       setSelectedCourse(null);
     }, 300);
@@ -762,7 +761,7 @@ export default function DomeGallery({
     [handleClosePopup]
   );
 
-  // Close popup on Escape key
+  
   useEffect(() => {
     const handleEscKey = (e) => {
       if (e.key === "Escape" && popupOpen) {
@@ -774,7 +773,6 @@ export default function DomeGallery({
     return () => window.removeEventListener("keydown", handleEscKey);
   }, [popupOpen, handleClosePopup]);
 
-  // Prevent background scroll when popup is open
   useEffect(() => {
     if (popupOpen) {
       document.body.style.overflow = "hidden";

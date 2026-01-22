@@ -15,38 +15,137 @@ import { getCourses } from "../../Api/course.api";
 /* EXPLORE DATA - Categories with keywords for better matching */
 const exploreCategories = {
   "Web Development": {
-    keywords: ["web", "react", "javascript", "html", "css", "frontend", "backend", "node", "vue", "angular"]
+    keywords: [
+      "web",
+      "react",
+      "javascript",
+      "html",
+      "css",
+      "frontend",
+      "backend",
+      "node",
+      "vue",
+      "angular",
+    ],
   },
   "Programming Languages": {
-    keywords: ["java", "python", "c++", "c#", "javascript", "typescript", "go", "ruby", "swift", "kotlin", "programming"]
+    keywords: [
+      "java",
+      "python",
+      "c++",
+      "c#",
+      "javascript",
+      "typescript",
+      "go",
+      "ruby",
+      "swift",
+      "kotlin",
+      "programming",
+    ],
   },
   "Mobile Development": {
-    keywords: ["mobile", "android", "ios", "react native", "flutter", "kotlin", "swift", "xamarin"]
+    keywords: [
+      "mobile",
+      "android",
+      "ios",
+      "react native",
+      "flutter",
+      "kotlin",
+      "swift",
+      "xamarin",
+    ],
   },
   "Software Testing": {
-    keywords: ["testing", "qa", "selenium", "test", "automation", "manual", "java", "python", "junit", "testng"]
+    keywords: [
+      "testing",
+      "qa",
+      "selenium",
+      "test",
+      "automation",
+      "manual",
+      "java",
+      "python",
+      "junit",
+      "testng",
+    ],
   },
   "Data Analytics": {
-    keywords: ["data", "analytics", "analysis", "sql", "excel", "power bi", "tableau", "business intelligence", "data structure", "algorithm"]
+    keywords: [
+      "data",
+      "analytics",
+      "analysis",
+      "sql",
+      "excel",
+      "power bi",
+      "tableau",
+      "business intelligence",
+      "data structure",
+      "algorithm",
+    ],
   },
   "Data Science": {
-    keywords: ["data science", "machine learning", "ai", "statistics", "python", "r", "tensorflow", "pytorch"]
+    keywords: [
+      "data science",
+      "machine learning",
+      "ai",
+      "statistics",
+      "python",
+      "r",
+      "tensorflow",
+      "pytorch",
+    ],
   },
   "UI/UX Design": {
-    keywords: ["ui", "ux", "design", "figma", "prototype", "wireframe", "user experience", "adobe xd"]
+    keywords: [
+      "ui",
+      "ux",
+      "design",
+      "figma",
+      "prototype",
+      "wireframe",
+      "user experience",
+      "adobe xd",
+    ],
   },
   "AI & Machine Learning": {
-    keywords: ["ai", "artificial intelligence", "machine learning", "deep learning", "neural network", "tensorflow", "pytorch", "nlp"]
+    keywords: [
+      "ai",
+      "artificial intelligence",
+      "machine learning",
+      "deep learning",
+      "neural network",
+      "tensorflow",
+      "pytorch",
+      "nlp",
+    ],
   },
   "Database Management": {
-    keywords: ["database", "sql", "mysql", "mongodb", "postgresql", "oracle", "nosql", "redis"]
+    keywords: [
+      "database",
+      "sql",
+      "mysql",
+      "mongodb",
+      "postgresql",
+      "oracle",
+      "nosql",
+      "redis",
+    ],
   },
   "Computer Networking": {
-    keywords: ["networking", "network", "ccna", "tcp/ip", "firewall", "security", "aws", "azure", "cloud"]
-  }
+    keywords: [
+      "networking",
+      "network",
+      "ccna",
+      "tcp/ip",
+      "firewall",
+      "security",
+      "aws",
+      "azure",
+      "cloud",
+    ],
+  },
 };
 
-// Logout Confirmation Modal Component
 const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
 
@@ -123,7 +222,7 @@ export default function Navbar() {
   const { isAuthenticated, user, logout, openLogin, openSignup } = useAuth();
   const { favorites } = useFavorites();
   const { cart } = useCart();
-  const { profile } = useProfile();
+  const { profile, clearProfile } = useProfile();
   const navigate = useNavigate();
 
   const [scrolled, setScrolled] = useState(false);
@@ -132,8 +231,7 @@ export default function Navbar() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  
-  // ✅ Courses state for explore menu
+
   const [allCourses, setAllCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -154,7 +252,6 @@ export default function Navbar() {
     try {
       setCoursesLoading(true);
       const data = await getCourses();
-      console.log("Courses loaded from backend:", data); // Debug
       setAllCourses(data || []);
     } catch (err) {
       console.error("Failed to load courses", err);
@@ -171,23 +268,21 @@ export default function Navbar() {
     if (!categoryData) return [];
 
     const keywords = categoryData.keywords || [];
-    
-    // Filter courses based on keywords in title, description, tags, or category
+
     const filteredCourses = allCourses.filter((course) => {
       const searchableText = `
-        ${course.title?.toLowerCase() || ''}
-        ${course.description?.toLowerCase() || ''}
-        ${course.category?.toLowerCase() || ''}
-        ${(course.tags || []).join(' ').toLowerCase()}
+        ${course.title?.toLowerCase() || ""}
+        ${course.description?.toLowerCase() || ""}
+        ${course.category?.toLowerCase() || ""}
+        ${(course.tags || []).join(" ").toLowerCase()}
       `;
-      
-      // Check if any keyword matches
-      return keywords.some(keyword => 
-        searchableText.includes(keyword.toLowerCase())
+
+      return keywords.some((keyword) =>
+        searchableText.includes(keyword.toLowerCase()),
       );
     });
 
-    return filteredCourses.slice(0, 6); // Top 6 courses only
+    return filteredCourses.slice(0, 6);
   };
 
   /* ---------------- AVATAR & USER INITIALS ---------------- */
@@ -202,21 +297,34 @@ export default function Navbar() {
   const getUserInitials = () => {
     if (!user) return "";
     return (
-      (user.firstName?.[0] || "") +
-      (user.lastName?.[0] || "")
+      (user.firstName?.[0] || "") + (user.lastName?.[0] || "")
     ).toUpperCase();
   };
 
-  /* ---------------- LOGOUT HANDLERS ---------------- */
+  /* ---------------- UPDATED LOGOUT HANDLER ---------------- */
   const handleLogoutClick = () => {
     setShowUserMenu(false);
     setShowLogoutConfirm(true);
   };
 
   const handleLogout = () => {
+    console.log(" Logging out user...");
+
     logout();
+
+    clearProfile();
+
     setShowLogoutConfirm(false);
     setMenuOpen(false);
+    setShowUserMenu(false);
+
+    console.log(" Refreshing page...");
+
+    navigate("/", { replace: true });
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   /* ---------------- SEARCH HANDLER ---------------- */
@@ -311,37 +419,46 @@ export default function Navbar() {
                         ) : (
                           <>
                             <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
-                              {activeCategory} Courses ({getCoursesByCategory(activeCategory).length})
+                              {activeCategory} Courses (
+                              {getCoursesByCategory(activeCategory).length})
                             </h3>
                             <ul className="space-y-3">
-                              {getCoursesByCategory(activeCategory).length === 0 ? (
+                              {getCoursesByCategory(activeCategory).length ===
+                              0 ? (
                                 <li className="text-sm text-gray-400">
                                   No courses available for this category
                                 </li>
                               ) : (
-                                getCoursesByCategory(activeCategory).map((course) => (
-                                  <li
-                                    key={course.id || course._id}
-                                    onClick={() => {
-                                      navigate(`/course/${course.id || course._id}`);
-                                      setShowExplore(false);
-                                    }}
-                                    className="cursor-pointer flex justify-between items-center
+                                getCoursesByCategory(activeCategory).map(
+                                  (course) => (
+                                    <li
+                                      key={course.id || course._id}
+                                      onClick={() => {
+                                        navigate(
+                                          `/course/${course.id || course._id}`,
+                                        );
+                                        setShowExplore(false);
+                                      }}
+                                      className="cursor-pointer flex justify-between items-center
                                       text-sm text-gray-700 dark:text-gray-300
                                       hover:text-blue-600 dark:hover:text-blue-400 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                                  >
-                                    <span className="truncate mr-2">
-                                      {course.title}
-                                    </span>
-                                    <HiChevronRight className="text-gray-300 flex-shrink-0" />
-                                  </li>
-                                ))
+                                    >
+                                      <span className="truncate mr-2">
+                                        {course.title}
+                                      </span>
+                                      <HiChevronRight className="text-gray-300 flex-shrink-0" />
+                                    </li>
+                                  ),
+                                )
                               )}
                             </ul>
-                            {getCoursesByCategory(activeCategory).length > 0 && (
+                            {getCoursesByCategory(activeCategory).length >
+                              0 && (
                               <button
                                 onClick={() => {
-                                  navigate(`/courses?category=${encodeURIComponent(activeCategory)}`);
+                                  navigate(
+                                    `/courses?category=${encodeURIComponent(activeCategory)}`,
+                                  );
                                   setShowExplore(false);
                                 }}
                                 className="w-full mt-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
@@ -358,7 +475,10 @@ export default function Navbar() {
               </div>
 
               {/* SEARCH BAR */}
-              <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
+              <form
+                onSubmit={handleSearch}
+                className="relative flex-1 max-w-md"
+              >
                 <input
                   type="text"
                   placeholder="Search for anything"
@@ -549,7 +669,6 @@ export default function Navbar() {
                   )}
                 </div>
               ) : (
-                // USER IS NOT LOGGED IN
                 <>
                   <button
                     onClick={openLogin}
@@ -592,7 +711,6 @@ export default function Navbar() {
               </form>
 
               {isAuthenticated && user ? (
-                // MOBILE: USER LOGGED IN
                 <>
                   <div className="py-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
@@ -619,7 +737,7 @@ export default function Navbar() {
                   </div>
 
                   <Link
-                    to="/dashboard"
+                    to="/"
                     className="flex items-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     onClick={() => setMenuOpen(false)}
                   >
@@ -754,7 +872,6 @@ export default function Navbar() {
                   </button>
                 </>
               ) : (
-                // MOBILE: USER NOT LOGGED IN
                 <>
                   <Link
                     to="/explore-courses"

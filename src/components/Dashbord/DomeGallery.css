@@ -5,7 +5,6 @@
 
   background: #28344e;
 
-  /* NEW variable */
   --overlay-blur-color: #c7e2f8;
 
   --radius: 520px;
@@ -33,7 +32,6 @@ main.sphere-main {
   display: grid;
   place-items: center;
   overflow: hidden;
-  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   background: transparent;
@@ -147,7 +145,6 @@ main.sphere-main {
   object-fit: cover;
   pointer-events: none;
   backface-visibility: hidden;
-  /* filter: var(--image-filter, none); */
 }
 
 .viewer {
@@ -183,7 +180,7 @@ main.sphere-main {
   pointer-events: none;
   opacity: 0;
   transition: opacity 500ms ease;
- -webkit-backdrop-filter: blur(3px); /* Safari support */
+ -webkit-backdrop-filter: blur(3px); 
   backdrop-filter: blur(3px);
 }
 

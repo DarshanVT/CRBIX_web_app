@@ -1,16 +1,11 @@
-// src/api/placement.api.js
 import api from "./api";
 
-/**
- * Get placement/job opportunities
- */
 export const getPlacementJobs = async () => {
   try {
-    const response = await api.get('/placements');
+    const response = await api.get("/placements");
     return response.data;
   } catch (error) {
     console.error("Error fetching placements:", error);
-    // Return mock data if endpoint doesn't exist
     return [
       {
         id: 1,
@@ -20,7 +15,7 @@ export const getPlacementJobs = async () => {
         salary: "$80,000 - $120,000",
         type: "Full-time",
         postedDate: "2024-01-10",
-        description: "Looking for React developer with 2+ years experience"
+        description: "Looking for React developer with 2+ years experience",
       },
       {
         id: 2,
@@ -30,8 +25,8 @@ export const getPlacementJobs = async () => {
         salary: "$90,000 - $130,000",
         type: "Full-time",
         postedDate: "2024-01-12",
-        description: "Java Spring Boot developer needed"
-      }
+        description: "Java Spring Boot developer needed",
+      },
     ];
   }
 };

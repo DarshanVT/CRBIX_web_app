@@ -1,4 +1,3 @@
-// src/hooks/useCourseProgress.jsx
 import { useState, useEffect, useCallback } from 'react';
 import * as courseApi from '../Api/course.api';
 
@@ -12,13 +11,11 @@ export const useCourseProgress = (courseId, userId) => {
     progressPercentage: 0
   });
 
-  // Fetch course with user progress
   const fetchCourseWithProgress = useCallback(async () => {
     if (!userId || !courseId) return;
     
     try {
       setLoading(true);
-      // Using getCourseById from your API
       const data = await courseApi.getCourseById(courseId, userId);
       setCourse(data);
       
@@ -26,8 +23,6 @@ export const useCourseProgress = (courseId, userId) => {
         setError('Course not found');
         return;
       }
-      
-      // Calculate progress
       let totalVideos = 0;
       let completedVideos = 0;
       
@@ -37,7 +32,6 @@ export const useCourseProgress = (courseId, userId) => {
           if (module.videos && Array.isArray(module.videos)) {
             module.videos.forEach(video => {
               totalVideos++;
-              // Check based on your API response format
               if (video.completed || video.isCompleted) {
                 completedVideos++;
               }
@@ -150,14 +144,12 @@ export const useCourseProgress = (courseId, userId) => {
     return allVideosCompleted && isAssessmentPassed;
   }, [course]);
 
-  // Submit assessment
   const submitAssessment = useCallback(async (assessmentId, answers) => {
     try {
       const result = await courseApi.submitAssessment(assessmentId, answers);
       
       if (result?.success || result?.passed) {
-        // Refresh course data
-        await fetchCourseWithProgress();
+          await fetchCourseWithProgress();
       }
       
       return result;

@@ -1,5 +1,3 @@
-// src/pages/AboutUs.jsx
-
 export default function AboutUs() {
   return (
     <div className="min-h-screen px-6 py-12 bg-[#eaf9ff] dark:bg-gray-900">

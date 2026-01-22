@@ -1,5 +1,3 @@
-// src/pages/Accessibility.jsx
-
 export default function Accessibility() {
   return (
     <div className="min-h-screen px-6 py-12 bg-[#eaf9ff] dark:bg-gray-900">
