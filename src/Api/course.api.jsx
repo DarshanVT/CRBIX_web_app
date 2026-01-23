@@ -546,82 +546,132 @@ export const getAssessmentStatus = async (assessmentId) => {
 
 export const canAttemptAssessment = async (assessmentId, userId) => {
   try {
-    console.log(" CAN ATTEMPT ASSESSMENT - Starting call...");
-    console.log("   Assessment ID:", assessmentId);
-    console.log("   User ID:", userId);
-
+    console.log('🔍 CAN ATTEMPT ASSESSMENT - Starting call...');
+    console.log('   Assessment ID:', assessmentId);
+    console.log('   User ID:', userId);
+    
+    // Make sure we have both parameters
     if (!assessmentId || !userId) {
-      console.error(" Missing parameters:", { assessmentId, userId });
+      console.error('❌ Missing parameters:', { assessmentId, userId });
       return false;
     }
-
+    
+    // The backend expects BOTH assessmentId AND userId
     const res = await api.get("/course/assessment/can-attempt", {
       params: {
         assessmentId,
-        userId,
-      },
+        userId  // ✅ ADD THIS - You're missing it!
+      }
     });
 
-    console.log(" CAN ATTEMPT RESPONSE:", res.data);
+    console.log('✅ CAN ATTEMPT RESPONSE:', res.data);
     return res.data?.canAttempt ?? false;
+    
   } catch (err) {
-    console.error(" Assessment canAttempt failed:", {
+    console.error("❌ Assessment canAttempt failed:", {
       error: err.message,
       status: err.response?.status,
       data: err.response?.data,
       url: err.config?.url,
-      params: err.config?.params,
+      params: err.config?.params  // Check what params were sent
     });
-
+    
     return false;
   }
 };
 
-export const getAssessmentQuestions = async (assessmentId, userId) => {
-  try {
-    console.log(" GET ASSESSMENT QUESTIONS - API Call:");
-    console.log("   Assessment ID:", assessmentId);
-    console.log("   User ID:", userId);
-
-    const res = await api.get("/course/assessment/questions", {
-      params: {
-        assessmentId,
-        userId,
-      },
-    });
-
-    console.log(" ASSESSMENT QUESTIONS RESPONSE:", {
-      status: res.status,
-      data: res.data,
-      hasQuestions: Array.isArray(res.data?.questions),
-      questionCount: Array.isArray(res.data?.questions)
-        ? res.data.questions.length
-        : 0,
-    });
-
-    if (Array.isArray(res.data?.questions) && res.data.questions.length > 0) {
-      console.log(" First question sample:", {
-        id: res.data.questions[0].id,
-        questionText: res.data.questions[0].questionText,
-        options: res.data.questions[0].options,
-        marks: res.data.questions[0].marks,
-      });
-    }
-
-    return res.data;
-  } catch (err) {
-    console.error(" Failed to get assessment questions:", {
-      error: err.message,
-      status: err.response?.status,
-      data: err.response?.data,
-      url: err.config?.url,
-    });
-
-    console.warn(" Using mock questions for testing");
-    return getMockQuestions(assessmentId);
-  }
+// Helper function to transform backend questions to frontend format
+export const transformQuestions = (questions) => {
+  if (!Array.isArray(questions)) return [];
+  
+  return questions.map(question => {
+    // Extract options from different possible field formats
+    const extractOptions = (q) => {
+      // Try different patterns for option fields
+      const patterns = [
+        // Standard camelCase
+        ['optionA', 'optionB', 'optionC', 'optionD'],
+        // Lowercase
+        ['optiona', 'optionb', 'optionc', 'optiond'],
+        // With underscores
+        ['option_a', 'option_b', 'option_c', 'option_d'],
+        // Mixed
+        ['option_A', 'option_B', 'option_C', 'option_D']
+      ];
+      
+      for (const pattern of patterns) {
+        const options = pattern
+          .map(field => q[field])
+          .filter(value => value !== undefined && value !== null && value !== '');
+        
+        if (options.length >= 2) { // At least 2 options found
+          return options;
+        }
+      }
+      
+      // Check if already has options array
+      if (Array.isArray(q.options)) {
+        return q.options;
+      }
+      
+      // Return empty array as fallback
+      return [];
+    };
+    
+    return {
+      id: question.id,
+      questionText: question.questionText || question.question_text || '',
+      options: extractOptions(question),
+      correctAnswer: question.correctAnswer || question.correct_answer || '',
+      marks: question.marks || 0,
+      questionType: question.questionType || 'multiple_choice',
+      explanation: question.explanation || '',
+      // Keep all original properties
+      ...question
+    };
+  });
 };
 
+export const getAssessmentQuestions = async (assessmentId, userId) => {
+  try {
+    console.log('🎯 GET ASSESSMENT QUESTIONS - API Call:');
+    console.log('   Assessment ID:', assessmentId);
+    console.log('   User ID:', userId);
+    
+    const res = await api.get(`/assessments/${assessmentId}/questions`, {
+      params: { userId }
+    });
+
+    console.log('✅ API Response Structure:', {
+      status: res.status,
+      dataKeys: Object.keys(res.data),
+      hasQuestions: Array.isArray(res.data?.questions),
+      questionCount: res.data?.questions?.length || 0
+    });
+    
+    // Log first question to see field names
+    if (res.data?.questions?.[0]) {
+      const firstQ = res.data.questions[0];
+      console.log('🔍 First Question Field Names:', Object.keys(firstQ));
+      console.log('🔍 First Question Values:', {
+        id: firstQ.id,
+        question_text: firstQ.question_text,
+        option_a: firstQ.option_a,
+        option_b: firstQ.option_b,
+        option_c: firstQ.option_c,
+        option_d: firstQ.option_d,
+        correct_answer: firstQ.correct_answer
+      });
+    }
+    
+    return res.data;
+    
+  } catch (err) {
+    console.error("❌ Failed to get assessment questions:", err);
+    throw err;
+  }
+};
+// Mock questions for testing
 const getMockQuestions = (assessmentId) => {
   const mockQuestions = [
     {
@@ -629,13 +679,13 @@ const getMockQuestions = (assessmentId) => {
       questionText: "What is Java primarily known for?",
       options: [
         "Platform independence",
-        "Speed of execution",
+        "Speed of execution", 
         "Ease of learning",
-        "Small memory footprint",
+        "Small memory footprint"
       ],
       correctAnswer: "Platform independence",
       marks: 2,
-      assessmentId: assessmentId,
+      assessmentId: assessmentId
     },
     {
       id: 2,
@@ -643,7 +693,7 @@ const getMockQuestions = (assessmentId) => {
       options: ["class", "object", "interface", "extends"],
       correctAnswer: "object",
       marks: 2,
-      assessmentId: assessmentId,
+      assessmentId: assessmentId
     },
     {
       id: 3,
@@ -652,87 +702,93 @@ const getMockQuestions = (assessmentId) => {
         "Java Virtual Machine",
         "Java Variable Manager",
         "Java Visual Machine",
-        "Java Version Manager",
+        "Java Version Manager"
       ],
       correctAnswer: "Java Virtual Machine",
       marks: 2,
-      assessmentId: assessmentId,
-    },
+      assessmentId: assessmentId
+    }
   ];
-
+  
   return {
     success: true,
     questions: mockQuestions,
     totalQuestions: mockQuestions.length,
     totalMarks: mockQuestions.reduce((sum, q) => sum + q.marks, 0),
-    message: "Mock questions loaded for testing",
+    message: "Mock questions loaded for testing"
   };
 };
 
 export const submitAssessment = async (assessmentId, userId, answers) => {
   try {
-    console.log(" SUBMIT ASSESSMENT - API Call:");
-    console.log("   Assessment ID:", assessmentId);
-    console.log("   User ID:", userId);
-    console.log("   Answers object:", answers);
-
+    console.log('📤 SUBMIT ASSESSMENT - API Call:');
+    console.log('   Assessment ID:', assessmentId);
+    console.log('   User ID:', userId);
+    console.log('   Answers object:', answers);
+    
+    // The backend expects answers in format: {questionId1: "answerText", questionId2: "answerText"}
+    // Make sure we're sending string values
     const formattedAnswers = {};
-    Object.keys(answers).forEach((questionId) => {
+    Object.keys(answers).forEach(questionId => {
       formattedAnswers[questionId] = answers[questionId] || "";
     });
-
-    console.log("   Formatted answers:", formattedAnswers);
-
+    
+    console.log('   Formatted answers:', formattedAnswers);
+    
     const res = await api.post("/course/assessment/submit", formattedAnswers, {
       params: {
         assessmentId,
-        userId,
-      },
+        userId
+      }
     });
 
-    console.log(" SUBMISSION RESPONSE:", res.data);
+    console.log('✅ SUBMISSION RESPONSE:', res.data);
     return res.data;
+    
   } catch (err) {
-    console.error(" Failed to submit assessment:", {
+    console.error("❌ Failed to submit assessment:", {
       error: err.message,
       status: err.response?.status,
       data: err.response?.data,
-      url: err.config?.url,
+      url: err.config?.url
     });
-
-    console.warn(" Using mock submission result for testing");
+    
+    // Return mock result for testing if API fails
+    console.warn('⚠️ Using mock submission result for testing');
     return getMockSubmissionResult(assessmentId, userId, answers);
   }
 };
 
+// Mock submission result for testing
 const getMockSubmissionResult = (assessmentId, userId, answers) => {
-  console.log(" Analyzing answers for mock result:", answers);
-
+  console.log('🔬 Analyzing answers for mock result:', answers);
+  
+  // For testing: Let's assume correct answer is always "Option B (Correct)"
   let correctCount = 0;
   let totalMarks = 0;
   const questionResults = [];
-
+  
   Object.keys(answers).forEach((questionId, index) => {
     const userAnswer = answers[questionId];
     const isCorrect = userAnswer === "Option B (Correct)";
-
+    
     if (isCorrect) {
       correctCount++;
-      totalMarks += 2;
+      totalMarks += 2; // Assuming 2 marks per question
     }
-
+    
     questionResults.push({
       questionId: questionId,
       correct: isCorrect,
       userAnswer: userAnswer,
-      correctAnswer: "Option B (Correct)",
+      correctAnswer: "Option B (Correct)"
     });
   });
-
+  
   const totalQuestions = Object.keys(answers).length;
   const percentage = (correctCount / totalQuestions) * 100;
   const passed = percentage >= 70;
-
+  
   return {
     success: true,
     passed: passed,
@@ -742,110 +798,84 @@ const getMockSubmissionResult = (assessmentId, userId, answers) => {
     correctAnswers: correctCount,
     totalQuestions: totalQuestions,
     questionResults: questionResults,
-    message: passed
-      ? "Congratulations! You passed the assessment."
-      : "Try again to improve your score.",
+    message: passed ? "Congratulations! You passed the assessment." : "Try again to improve your score."
   };
 };
 
+// In course.api.js - Update the getModuleAssessments function:
+
 export const getModuleAssessments = async (moduleId, userId = null) => {
   try {
-    console.log(" GET MODULE ASSESSMENTS:", {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.error('❌ No auth token found for module assessments');
+      return [];
+    }
+
+    console.log('📚 GET MODULE ASSESSMENTS:', {
       moduleId,
       userId,
-      hasToken: !!localStorage.getItem("auth_token"),
+      hasToken: !!token,
+      tokenPreview: token.substring(0, 20) + '...'
     });
-
-    const token = localStorage.getItem("auth_token");
 
     const config = {
       headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+        'Authorization': `Bearer ${token}`  // ✅ ADD AUTHORIZATION HEADER
+      }
     };
 
+    // Add userId as param if provided
     if (userId) {
       config.params = { userId };
     }
 
     const res = await api.get(`/modules/${moduleId}/assessments`, config);
-
-    console.log(" MODULE ASSESSMENTS RESPONSE:", {
+    
+    console.log('✅ MODULE ASSESSMENTS RESPONSE:', {
       status: res.status,
       data: res.data,
       isArray: Array.isArray(res.data),
-      length: Array.isArray(res.data) ? res.data.length : "not array",
+      length: Array.isArray(res.data) ? res.data.length : 'not array'
     });
 
-    return Array.isArray(res.data) ? res.data : res.data?.data || [];
+    return Array.isArray(res.data) ? res.data : (res.data?.data || []);
   } catch (error) {
-    console.error(` Error fetching assessments for module ${moduleId}:`, {
+    console.error(`❌ Error fetching assessments for module ${moduleId}:`, {
       message: error.message,
       status: error.response?.status,
       data: error.response?.data,
       url: error.config?.url,
+      headers: error.config?.headers
     });
-
-    console.warn(" Using mock assessments for module:", moduleId);
-    return getMockAssessmentsForModule(moduleId);
+    
+    // // If endpoint doesn't exist, return mock data for testing
+    // if (error.response?.status === 401) {
+    //   console.error('⚠️ Authentication failed - token may be invalid or expired');
+    //   // Optionally clear token and redirect to login
+    //   localStorage.removeItem('auth_token');
+    //   localStorage.removeItem('user_id');
+    //   window.location.href = '/login';
+    // }
+    
+    if (error.response?.status === 404) {
+      console.warn('⚠️ Assessments endpoint not found, returning mock data');
+      return [
+        {
+          id: moduleId,
+          title: `Assessment - Module ${moduleId}`,
+          description: "Test your knowledge",
+          totalMarks: 20,
+          totalQuestions: 10,
+          duration: 1800, 
+          passingMarks: 12,
+          isLocked: false
+        }
+      ];
+    }
+    
+    return [];
   }
-};
-
-const getMockAssessmentsForModule = (moduleId) => {
-  const moduleAssessments = {
-    1: [
-      {
-        id: 101,
-        title: "Core Java Basics Assessment",
-        description: "Test your understanding of Java fundamentals",
-        totalMarks: 100,
-        totalQuestions: 10,
-        duration: 1800,
-        passingMarks: 70,
-        moduleId: 1,
-      },
-    ],
-    2: [
-      {
-        id: 102,
-        title: "Java Advanced Concepts Assessment",
-        description: "Test your knowledge of OOP and advanced Java",
-        totalMarks: 100,
-        totalQuestions: 10,
-        duration: 1800,
-        passingMarks: 70,
-        moduleId: 2,
-      },
-    ],
-    3: [
-      {
-        id: 103,
-        title: "Object-Oriented Programming Assessment",
-        description: "Test your OOP skills",
-        totalMarks: 100,
-        totalQuestions: 10,
-        duration: 1800,
-        passingMarks: 70,
-        moduleId: 3,
-      },
-    ],
-  };
-
-  return (
-    moduleAssessments[moduleId] || [
-      {
-        id: moduleId * 100,
-        title: `Assessment - Module ${moduleId}`,
-        description: "Test your knowledge",
-        totalMarks: 100,
-        totalQuestions: 10,
-        duration: 1800,
-        passingMarks: 70,
-        moduleId: moduleId,
-      },
-    ]
-  );
 };
 
 export const getAssessmentDetails = async (assessmentId) => {
@@ -958,6 +988,131 @@ export const getProfile = async () => {
   }
 };
 
+/* ==================== PROFILE APIS ==================== */
+
+// ✅ Profile photo upload
+export const uploadProfilePhoto = async (file) => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await api.post('/auth/profile/upload-image', formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Profile photo upload error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Upload failed'
+    };
+  }
+};
+
+// ✅ Get full user profile
+export const getUserProfile = async () => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    const response = await api.get('/auth/profile/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Get user profile error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to fetch profile'
+    };
+  }
+};
+
+// ✅ Update user profile
+export const updateUserProfile = async (profileData) => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    const response = await api.put('/auth/profile/update', profileData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Update failed'
+    };
+  }
+};
+
+// ✅ Get current user (JWT)
+export const getCurrentUser = async () => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    const response = await api.get('/auth/jwt/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Get current user error:', error);
+    return {
+      success: false,
+      message: 'Failed to get user data'
+    };
+  }
+};
+
+// ✅ Validate token
+export const validateToken = async () => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      return { success: false, valid: false, message: 'No token found' };
+    }
+
+    const response = await api.post('/auth/jwt/validate', { token });
+    return response.data;
+  } catch (error) {
+    console.error('Token validation error:', error);
+    return {
+      success: false,
+      valid: false,
+      message: 'Token validation failed'
+    };
+  }
+};
+
+
+
 /* ==================== CHECKOUT ==================== */
 
 export const checkoutCart = async (checkoutData) => {
@@ -1029,51 +1184,84 @@ export const getMonthStreak = async (courseId, year, month) => {
   }
 };
 
-export const advancedSearchCourses = async (searchParams) => {
+export const searchCourses = async (query, userId = null) => {
   try {
-    const userId = localStorage.getItem("user_id");
-    const params = { ...searchParams };
+    const params = {};
+    if (query) params.search = query;
     if (userId) params.userId = userId;
-
-    const res = await api.get("/courses/advanced-search", { params });
-    return res.data?.data ?? [];
-  } catch (err) {
-    console.error("Advanced search failed:", err);
+    
+    console.log('🔍 Search Request:', { query, userId, params });
+    
+    const response = await api.get('/courses', { params });
+    
+    console.log('🔍 Search Response:', {
+      status: response.status,
+      dataLength: response.data?.data?.length || 0,
+      data: response.data
+    });
+    
+    // Return empty array if no data
+    return response.data?.data || [];
+  } catch (error) {
+    console.error('❌ Search Error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    
+    // Return empty array instead of throwing
     return [];
   }
 };
 
-export const getPopularTags = async () => {
+// Advanced search function
+export const advancedSearch = async (filters, userId = null) => {
   try {
-    const res = await api.get("/courses/tags/popular");
-    return res.data?.tags ?? [];
-  } catch (err) {
-    console.error("Get popular tags failed:", err);
+    const params = { ...filters };
+    if (userId) params.userId = userId;
+    
+    const response = await api.get('/courses/advanced-search', { params });
+    return response.data.data || [];
+  } catch (error) {
+    console.error('❌ Advanced Search Error:', error);
+    throw error;
+  }
+};
+
+// Get search suggestions
+export const getSearchSuggestions = async (query) => {
+  try {
+    const response = await api.get('/courses/search/suggestions', {
+      params: { query }
+    });
+    return response.data.suggestions || [];
+  } catch (error) {
+    console.error('❌ Search Suggestions Error:', error);
     return [];
   }
 };
 
+// Get courses by tag
 export const getCoursesByTag = async (tagName, userId = null) => {
   try {
     const params = {};
     if (userId) params.userId = userId;
-
-    const res = await api.get(`/courses/tag/${tagName}`, { params });
-    return res.data?.data ?? [];
-  } catch (err) {
-    console.error("Get courses by tag failed:", err);
-    return [];
+    
+    const response = await api.get(`/courses/tag/${encodeURIComponent(tagName)}`, { params });
+    return response.data.data || [];
+  } catch (error) {
+    console.error('❌ Courses by Tag Error:', error);
+    throw error;
   }
 };
 
-export const getSearchSuggestions = async (query) => {
+// Get popular tags
+export const getPopularTags = async () => {
   try {
-    const res = await api.get("/courses/search/suggestions", {
-      params: { query },
-    });
-    return res.data?.suggestions ?? [];
-  } catch (err) {
-    console.error("Get search suggestions failed:", err);
+    const response = await api.get('/courses/tags/popular');
+    return response.data.tags || [];
+  } catch (error) {
+    console.error('❌ Popular Tags Error:', error);
     return [];
   }
 };
@@ -1189,7 +1377,7 @@ export default {
   getStreakOverview,
   getStreakDayDetails,
   getMonthStreak,
-  advancedSearchCourses,
+  advancedSearch,
   getPopularTags,
   getCoursesByTag,
   getSearchSuggestions,

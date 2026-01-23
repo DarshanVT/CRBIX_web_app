@@ -214,7 +214,7 @@ const AssessmentResultModal = ({ result, onClose, onRetake, theme }) => {
               className={`h-full rounded-full ${
                 percentage >= 70 
                   ? 'bg-green-500 dark:bg-green-600' 
-                  : 'bg-red-500 dark:bg-red-600'
+                  : 'bg-red-500 dark:text-red-600'
               }`}
               style={{ width: `${Math.min(percentage, 100)}%` }}
             />
@@ -285,7 +285,7 @@ export default function CourseContent({
   course: initialCourse,
   startLearning,
   setStartLearning,
-  onCourseUpdate // ADD THIS PROP
+  onCourseUpdate
 }) {
   console.log("🎯 CourseContent RECEIVED:", {
     initialCourse,
@@ -315,7 +315,7 @@ export default function CourseContent({
   const [assessmentStatus, setAssessmentStatus] = useState({});
   const [moduleAssessments, setModuleAssessments] = useState({});
   
-  // NEW: Assessment result modal state (like mobile app)
+  // Assessment result modal state
   const [assessmentResult, setAssessmentResult] = useState(null);
   const [showResultModal, setShowResultModal] = useState(false);
 
@@ -430,7 +430,7 @@ export default function CourseContent({
       // Update local state
       setCourse(fresh);
       
-      // IMPORTANT: Update parent state too
+      // Update parent state too
       if (onCourseUpdate) {
         console.log("🔄 Updating parent course state");
         onCourseUpdate(fresh);
@@ -466,7 +466,6 @@ export default function CourseContent({
         console.log(`🔓 Unlocking video: ${firstVideo.id} - ${firstVideo.title}`);
         
         try {
-          // Call API to unlock video
           const res = await fetch(`https://cdaxx-backend.onrender.com/api/videos/${firstVideo.id}/unlock?userId=${userId}&courseId=${course.id}&moduleId=${moduleId}`, {
             method: 'POST',
             headers: {
@@ -478,7 +477,6 @@ export default function CourseContent({
           if (res.ok) {
             console.log('✅ Video unlocked via API');
             
-            // Update local state immediately
             const updatedCourse = { ...course };
             const moduleIndex = updatedCourse.modules?.findIndex(m => m.id === moduleId);
             
@@ -488,7 +486,6 @@ export default function CourseContent({
                 updatedCourse.modules[moduleIndex].videos[videoIndex].isLocked = false;
                 setCourse(updatedCourse);
                 
-                // Update parent state
                 if (onCourseUpdate) {
                   onCourseUpdate(updatedCourse);
                 }
@@ -499,7 +496,6 @@ export default function CourseContent({
           }
         } catch (apiError) {
           console.error('❌ API unlock failed:', apiError);
-          // Still update state for immediate UI feedback
           const updatedCourse = { ...course };
           const moduleIndex = updatedCourse.modules?.findIndex(m => m.id === moduleId);
           
@@ -533,6 +529,9 @@ export default function CourseContent({
       nextModuleUnlocked: result.nextModuleUnlocked,
       currentAssessment: currentAssessment
     });
+    
+    // Close assessment modal
+    setShowAssessmentModal(false);
     
     if (result.success && result.passed) {
       const currentModuleId = currentAssessment?.moduleId;
@@ -579,10 +578,11 @@ export default function CourseContent({
               }
             }
             
-            // 4. Show success message
-            const nextModuleTitle = course.modules[currentModuleIndex + 1]?.title || "Next Module";
+            // 4. Get next module title for message
+            const currentModuleIndexForTitle = course.modules?.findIndex(m => m.id === currentModuleId);
+            const nextModuleTitle = course.modules[currentModuleIndexForTitle + 1]?.title || "Next Module";
             
-            // Show result modal
+            // 5. Show result modal
             setAssessmentResult({
               ...result,
               nextModuleUnlocked: true,
@@ -590,44 +590,57 @@ export default function CourseContent({
             });
             setShowResultModal(true);
             
-            // 5. Refresh course data
+            // 6. Refresh course data after showing result
             setTimeout(async () => {
               console.log('🔄 Final course refresh after assessment');
               await refreshCourse();
             }, 1000);
             
-            // Close assessment modal
-            setShowAssessmentModal(false);
+            // Reset current assessment
             setCurrentAssessment(null);
             return;
           }
           
           // If we reach here, module wasn't unlocked but assessment passed
-          alert('✅ Assessment passed!');
-          setAssessmentResult(result);
+          console.log('✅ Assessment passed but next module not unlocked');
+          setAssessmentResult({
+            ...result,
+            nextModuleUnlocked: false,
+            message: "Assessment passed! Check if next module is available."
+          });
           setShowResultModal(true);
           
         } catch (error) {
           console.error('❌ Error unlocking next module:', error);
-          alert('Assessment passed, but there was an issue unlocking the next module.');
+          setAssessmentResult({
+            ...result,
+            nextModuleUnlocked: false,
+            message: "Assessment passed, but there was an issue unlocking the next module."
+          });
+          setShowResultModal(true);
         }
       } else {
-        alert('✅ Assessment passed!');
+        // No module ID found
+        console.log('✅ Assessment passed but no module ID');
         setAssessmentResult(result);
         setShowResultModal(true);
       }
     } else if (result.success) {
-      alert('Assessment completed. Try again to pass!');
+      // Assessment not passed
+      console.log('📊 Assessment completed but not passed');
       setAssessmentResult(result);
       setShowResultModal(true);
     } else {
-      alert('Assessment failed. Please try again.');
-      setAssessmentResult(result);
+      // Assessment failed
+      console.log('❌ Assessment failed');
+      setAssessmentResult({
+        ...result,
+        message: "Assessment failed. Please try again."
+      });
       setShowResultModal(true);
     }
     
-    // Close the assessment modal
-    setShowAssessmentModal(false);
+    // Reset current assessment
     setCurrentAssessment(null);
     
   }, [currentAssessment, course, refreshCourse, onCourseUpdate]);
@@ -654,125 +667,121 @@ export default function CourseContent({
   }
 
   /* -------------------- VIDEO CLICK -------------------- */
-const handleVideoClick = async (video, moduleId, mi, vi) => {
-  console.log(`🎬 Video click: module=${mi}, video=${vi}, isLocked=${video.isLocked}, isCompleted=${video.isCompleted}`);
-  
-  const isUnlockable = checkVideoUnlockable(course, mi, vi);
-  console.log(`🔓 Is unlockable: ${isUnlockable}`);
-  
-  if (!isUnlockable) {
-    // ... existing code ...
-    return;
-  }
-
-  // ✅ Set the video with latest state
-  setOpenVideo(video);
-  setCurrentModuleId(moduleId);
-  setCurrentVideoIndex(vi);
-  setIsVideoCompleted(video.isCompleted === true);
-  
-  // ✅ Force re-render for this video
-  const updatedCourse = { ...course };
-  const moduleIndex = updatedCourse.modules?.findIndex(m => m.id === moduleId);
-  
-  if (moduleIndex !== -1) {
-    const videoIndex = updatedCourse.modules[moduleIndex]?.videos?.findIndex(v => v.id === video.id);
-    if (videoIndex !== -1) {
-      // Update parent if needed
-      if (onCourseUpdate) {
-        onCourseUpdate(updatedCourse);
-      }
-    }
-  }
-};
-
-const handleVideoCompleted = async () => {
-  if (!user?.id || !course?.id || !currentModuleId || !openVideo?.id) {
-    alert("Unable to complete video. Please try again.");
-    return;
-  }
-
-  // ✅ 1. IMMEDIATE UI UPDATE
-  setIsVideoCompleted(true);
-  
-  // ✅ 2. Update openVideo state IMMEDIATELY
-  setOpenVideo(prev => ({
-    ...prev,
-    isCompleted: true,
-    isLocked: false
-  }));
-  
-  // ✅ 3. Update course state IMMEDIATELY for instant tick
-  const updatedCourse = JSON.parse(JSON.stringify(course));
-  const moduleIndex = updatedCourse.modules?.findIndex(m => m.id === currentModuleId);
-  
-  if (moduleIndex !== -1) {
-    const videoIndex = updatedCourse.modules[moduleIndex]?.videos?.findIndex(v => v.id === openVideo.id);
-    if (videoIndex !== -1) {
-      updatedCourse.modules[moduleIndex].videos[videoIndex].isCompleted = true;
-      updatedCourse.modules[moduleIndex].videos[videoIndex].isLocked = false;
-      
-      // ✅ 4. SET COURSE STATE IMMEDIATELY (no waiting)
-      setCourse(updatedCourse);
-      
-      // ✅ 5. Update parent state immediately for instant UI feedback
-      if (onCourseUpdate) {
-        console.log("🔄 Updating parent state after video completion");
-        onCourseUpdate(updatedCourse);
-      }
-    }
-  }
-  
-  setShowNextOverlay(true);
-
-  try {
-    // ✅ 6. API call - backend update (background mein chale)
-    await completeVideo(user.id, course.id, currentModuleId, openVideo.id);
+  const handleVideoClick = async (video, moduleId, mi, vi) => {
+    console.log(`🎬 Video click: module=${mi}, video=${vi}, isLocked=${video.isLocked}, isCompleted=${video.isCompleted}`);
     
-    console.log("✅ Video marked as completed on backend");
+    const isUnlockable = checkVideoUnlockable(course, mi, vi);
+    console.log(`🔓 Is unlockable: ${isUnlockable}`);
+    
+    if (!isUnlockable) {
+      // ... existing code ...
+      return;
+    }
 
-    // ✅ 7. Do a QUICK refresh to sync with backend (without loading)
-    setTimeout(async () => {
-      console.log("🔄 Quick refresh to sync with backend");
-      
-      // Silently refresh without showing loader
-      try {
-        const fresh = await getCourseById(course.id, user?.id);
-        
-        // Only update if data is different
-        if (JSON.stringify(fresh) !== JSON.stringify(updatedCourse)) {
-          setCourse(fresh);
-          if (onCourseUpdate) onCourseUpdate(fresh);
+    // Set the video with latest state
+    setOpenVideo(video);
+    setCurrentModuleId(moduleId);
+    setCurrentVideoIndex(vi);
+    setIsVideoCompleted(video.isCompleted === true);
+    
+    // Force re-render for this video
+    const updatedCourse = { ...course };
+    const moduleIndex = updatedCourse.modules?.findIndex(m => m.id === moduleId);
+    
+    if (moduleIndex !== -1) {
+      const videoIndex = updatedCourse.modules[moduleIndex]?.videos?.findIndex(v => v.id === video.id);
+      if (videoIndex !== -1) {
+        if (onCourseUpdate) {
+          onCourseUpdate(updatedCourse);
         }
-        
-        setShowNextOverlay(false);
+      }
+    }
+  };
 
-        // Auto-play next video if available
-        const currentModule = fresh.modules?.find(m => m.id === currentModuleId);
-        if (currentModule?.videos) {
-          for (let vi = currentVideoIndex + 1; vi < currentModule.videos.length; vi++) {
-            const nextVideo = currentModule.videos[vi];
-            const isNextUnlockable = checkVideoUnlockable(fresh, openModuleIndex, vi);
-            
-            if (isNextUnlockable && !nextVideo.isLocked) {
-              handleVideoClick(nextVideo, currentModuleId, openModuleIndex, vi);
-              return;
+  const handleVideoCompleted = async () => {
+    if (!user?.id || !course?.id || !currentModuleId || !openVideo?.id) {
+      alert("Unable to complete video. Please try again.");
+      return;
+    }
+
+    // 1. IMMEDIATE UI UPDATE
+    setIsVideoCompleted(true);
+    
+    // 2. Update openVideo state IMMEDIATELY
+    setOpenVideo(prev => ({
+      ...prev,
+      isCompleted: true,
+      isLocked: false
+    }));
+    
+    // 3. Update course state IMMEDIATELY for instant tick
+    const updatedCourse = JSON.parse(JSON.stringify(course));
+    const moduleIndex = updatedCourse.modules?.findIndex(m => m.id === currentModuleId);
+    
+    if (moduleIndex !== -1) {
+      const videoIndex = updatedCourse.modules[moduleIndex]?.videos?.findIndex(v => v.id === openVideo.id);
+      if (videoIndex !== -1) {
+        updatedCourse.modules[moduleIndex].videos[videoIndex].isCompleted = true;
+        updatedCourse.modules[moduleIndex].videos[videoIndex].isLocked = false;
+        
+        // 4. SET COURSE STATE IMMEDIATELY (no waiting)
+        setCourse(updatedCourse);
+        
+        // 5. Update parent state immediately for instant UI feedback
+        if (onCourseUpdate) {
+          console.log("🔄 Updating parent state after video completion");
+          onCourseUpdate(updatedCourse);
+        }
+      }
+    }
+    
+    setShowNextOverlay(true);
+
+    try {
+      // 6. API call - backend update
+      await completeVideo(user.id, course.id, currentModuleId, openVideo.id);
+      
+      console.log("✅ Video marked as completed on backend");
+
+      // 7. Do a QUICK refresh to sync with backend
+      setTimeout(async () => {
+        console.log("🔄 Quick refresh to sync with backend");
+        
+        try {
+          const fresh = await getCourseById(course.id, user?.id);
+          
+          if (JSON.stringify(fresh) !== JSON.stringify(updatedCourse)) {
+            setCourse(fresh);
+            if (onCourseUpdate) onCourseUpdate(fresh);
+          }
+          
+          setShowNextOverlay(false);
+
+          // Auto-play next video if available
+          const currentModule = fresh.modules?.find(m => m.id === currentModuleId);
+          if (currentModule?.videos) {
+            for (let vi = currentVideoIndex + 1; vi < currentModule.videos.length; vi++) {
+              const nextVideo = currentModule.videos[vi];
+              const isNextUnlockable = checkVideoUnlockable(fresh, openModuleIndex, vi);
+              
+              if (isNextUnlockable && !nextVideo.isLocked) {
+                handleVideoClick(nextVideo, currentModuleId, openModuleIndex, vi);
+                return;
+              }
             }
           }
+        } catch (err) {
+          console.error("Silent refresh error:", err);
+          setShowNextOverlay(false);
         }
-      } catch (err) {
-        console.error("Silent refresh error:", err);
-        setShowNextOverlay(false);
-      }
-    }, 1500); // Reduced delay
+      }, 1500);
 
-  } catch (err) {
-    console.error("Error completing video:", err);
-    // Even if API fails, UI should show completed state
-    alert("Video marked as complete locally. Syncing with server may take a moment.");
-    setShowNextOverlay(false);
-  }
-};
+    } catch (err) {
+      console.error("Error completing video:", err);
+      alert("Video marked as complete locally. Syncing with server may take a moment.");
+      setShowNextOverlay(false);
+    }
+  };
 
   const handleAssessmentClick = async (assessment, moduleId) => {
     if (!assessment || !moduleId) {
@@ -1221,15 +1230,15 @@ const handleVideoCompleted = async () => {
           )}
           
           <div className="flex-1 relative">
-     <VideoPlayer
-        courseId={course.id}
-        moduleId={currentModuleId}
-        video={openVideo}
-        onVideoCompleted={(videoId) => {
-          handleVideoCompleted();
-        }}
-        userId={user?.id}
-      />
+            <VideoPlayer
+              courseId={course.id}
+              moduleId={currentModuleId}
+              video={openVideo}
+              onVideoCompleted={(videoId) => {
+                handleVideoCompleted();
+              }}
+              userId={user?.id}
+            />
           </div>
 
           {/* VIDEO NAVIGATION CONTROLS */}
@@ -1296,6 +1305,8 @@ const handleVideoCompleted = async () => {
           onClose={() => {
             setShowAssessmentModal(false);
             setCurrentAssessment(null);
+            // Refresh course data when closing assessment modal
+            refreshCourse();
           }}
           onComplete={handleAssessmentComplete}
           userId={user?.id}

@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
     const userInfo =
       localStorage.getItem("user_info") || localStorage.getItem("user");
 
-    console.log(" AuthContext init check:", {
+    console.log("🔍 AuthContext init check:", {
       token: !!token,
       userInfo: !!userInfo,
       user_id: localStorage.getItem("user_id"),
@@ -32,9 +32,9 @@ export const AuthProvider = ({ children }) => {
       setIsAuth(true);
       setToken(token);
       setUser(JSON.parse(userInfo));
-      console.log(" AuthContext: User authenticated");
+      console.log("✅ AuthContext: User authenticated");
     } else {
-      console.log(" AuthContext: No valid auth data found");
+      console.log("⚠️ AuthContext: No valid auth data found");
     }
   }, []);
 
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const handleOpenLogin = () => {
-      console.log(" Opening login modal from 401");
+      console.log("📱 Opening login modal from 401");
       openLogin();
     };
 
@@ -98,34 +98,96 @@ export const AuthProvider = ({ children }) => {
   };
 
   const loginSuccess = (userData) => {
-    const token = localStorage.getItem("auth_token");
-    const userInfo = localStorage.getItem("user_info");
+    console.log("🎯 loginSuccess called with:", userData);
+    
+    // Get tokens from localStorage (set by API)
+    const authToken = localStorage.getItem("auth_token");
     const userId = localStorage.getItem("user_id");
-
-    console.log(" loginSuccess check:", {
-      hasToken: !!token,
-      tokenLength: token?.length,
-      tokenStart: token?.substring(0, 20),
-      hasUserInfo: !!userInfo,
+    const userInfo = localStorage.getItem("user_info");
+    
+    console.log("🔍 Storage check in loginSuccess:", {
+      authToken: authToken ? `${authToken.substring(0, 20)}...` : 'none',
       userId: userId,
-      userDataFromParam: userData,
+      userInfo: userInfo ? JSON.parse(userInfo) : 'none'
     });
-
-    if (token && userInfo) {
+    
+    // If we have userData parameter but no localStorage data yet
+    if (userData && !authToken) {
+      console.log("📦 Using userData parameter to set auth state");
+      
+      // Create user info object
+      const userInfoObj = {
+        id: userData.id || userData._id,
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        ...userData
+      };
+      
+      // Set localStorage if not already set
+      if (!localStorage.getItem("user_info")) {
+        localStorage.setItem("user_info", JSON.stringify(userInfoObj));
+      }
+      
+      if (!localStorage.getItem("user_id") && userInfoObj.id) {
+        localStorage.setItem("user_id", userInfoObj.id);
+      }
+      
+      // Check again for token
+      const updatedToken = localStorage.getItem("auth_token");
+      
+      if (updatedToken) {
+        setIsAuth(true);
+        setToken(updatedToken);
+        setUser(userInfoObj);
+        closeAuth();
+        console.log("✅ AuthContext: Login successful with userData parameter");
+        return true;
+      }
+    }
+    
+    // Normal flow - check localStorage
+    if (authToken && userInfo) {
       setIsAuth(true);
-      setToken(token);
+      setToken(authToken);
       setUser(JSON.parse(userInfo));
       closeAuth();
-      console.log(" AuthContext: Login successful");
+      console.log("✅ AuthContext: Login successful from localStorage");
+      return true;
     } else {
-      console.error(" AuthContext: Missing token or user info after login");
+      console.error("❌ AuthContext: Missing auth data", {
+        hasToken: !!authToken,
+        hasUserInfo: !!userInfo
+      });
+      
+      // Try to use userData as fallback
+      if (userData) {
+        console.log("🔄 Using userData as fallback");
+        const userInfoObj = {
+          id: userData.id || userData._id || userId,
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          ...userData
+        };
+        
+        // Set state anyway
+        setIsAuth(true);
+        setUser(userInfoObj);
+        setToken(authToken || 'placeholder-token');
+        closeAuth();
+        console.log("⚠️ AuthContext: Login with fallback data");
+        return true;
+      }
+      
+      return false;
     }
   };
 
   const logout = () => {
     const userId = user?.id || user?._id;
 
-    console.log(" Logging out user:", userId);
+    console.log("🚪 Logging out user:", userId);
 
     const authItemsToRemove = [
       "auth_token",
@@ -137,7 +199,7 @@ export const AuthProvider = ({ children }) => {
 
     authItemsToRemove.forEach((item) => {
       localStorage.removeItem(item);
-      console.log(" Removed auth item:", item);
+      console.log("🗑️ Removed auth item:", item);
     });
 
     Object.keys(localStorage).forEach((key) => {
@@ -156,10 +218,10 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     console.log(
-      "AuthContext: User logged out (Avatar preserved in local storage)",
+      "✅ AuthContext: User logged out (Avatar preserved in local storage)",
     );
     console.log(
-      "Avatar still in storage:",
+      "🖼️ Avatar still in storage:",
       localStorage.getItem(`user_avatar_${userId}`) ? "YES" : "NO",
     );
   };
@@ -175,12 +237,21 @@ export const AuthProvider = ({ children }) => {
           key.includes("user")
         ) {
           localStorage.removeItem(key);
-          console.log(" Removed:", key);
+          console.log("🗑️ Removed:", key);
         }
       });
-      console.log(" All user data cleared (including avatar)");
+      console.log("✅ All user data cleared (including avatar)");
     }
   };
+
+  // Update localStorage when user changes
+  useEffect(() => {
+    if (user && token) {
+      console.log("💾 Updating localStorage with current user");
+      localStorage.setItem("user_info", JSON.stringify(user));
+      localStorage.setItem("user_id", user.id || user._id);
+    }
+  }, [user, token]);
 
   return (
     <AuthContext.Provider

@@ -5,12 +5,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { HiMenu, HiX } from "react-icons/hi";
 import { HiOutlineShoppingCart, HiHeart } from "react-icons/hi";
 import { HiChevronRight } from "react-icons/hi";
-
+import { FiSearch, FiX, FiStar } from "react-icons/fi";
+import { HiOutlineCurrencyRupee } from "react-icons/hi";
+import { searchCourses, getSearchSuggestions, getPopularTags, getCourses } from "../../Api/course.api";
 import { useAuth } from "../Login/AuthContext";
+import { useProfile } from "../Profile/ProfileContext";
 import { useFavorites } from "./FavoritesContext";
 import { useCart } from "./CartContext";
-import { useProfile } from "../Profile/ProfileContext";
-import { getCourses } from "../../Api/course.api";
 
 /* EXPLORE DATA - Categories with keywords for better matching */
 const exploreCategories = {
@@ -218,6 +219,92 @@ const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
+// Mini Course Card Component for Search Results
+const SearchResultCard = ({ course, onClick }) => {
+  const {
+    id,
+    title,
+    thumbnailUrl,
+    instructor,
+    price,
+    discountedPrice,
+    rating,
+    category,
+  } = course;
+
+  return (
+    <div 
+      onClick={() => onClick(id)}
+      className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+    >
+      {/* Thumbnail */}
+      <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+        <img
+          src={thumbnailUrl || '/default-course.jpg'}
+          alt={title}
+          className="w-full h-full object-cover"
+        />
+      </div>
+      
+      {/* Course Info */}
+      <div className="flex-1 min-w-0">
+        <h4 className="font-medium text-gray-800 dark:text-white text-sm line-clamp-1">
+          {title}
+        </h4>
+        
+        {instructor && (
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+            {instructor}
+          </p>
+        )}
+        
+        {category && (
+          <span className="inline-block px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded-full mt-1">
+            {category}
+          </span>
+        )}
+        
+        <div className="flex items-center justify-between mt-2">
+          {/* Price */}
+          <div className="flex items-center gap-1">
+            {discountedPrice ? (
+              <>
+                <span className="text-sm font-bold text-gray-800 dark:text-white">
+                  <HiOutlineCurrencyRupee className="inline -mt-0.5" size={12} />
+                  {discountedPrice}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 line-through">
+                  <HiOutlineCurrencyRupee className="inline -mt-0.5" size={10} />
+                  {price}
+                </span>
+              </>
+            ) : price ? (
+              <span className="text-sm font-bold text-gray-800 dark:text-white">
+                <HiOutlineCurrencyRupee className="inline -mt-0.5" size={12} />
+                {price}
+              </span>
+            ) : (
+              <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                Free
+              </span>
+            )}
+          </div>
+          
+          {/* Rating */}
+          {rating && (
+            <div className="flex items-center gap-1">
+              <FiStar size={12} className="text-yellow-500" />
+              <span className="text-xs text-gray-600 dark:text-gray-400">
+                {rating.toFixed(1)}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Navbar() {
   const { isAuthenticated, user, logout, openLogin, openSignup } = useAuth();
   const { favorites } = useFavorites();
@@ -234,7 +321,15 @@ export default function Navbar() {
 
   const [allCourses, setAllCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
+  
+  // Search related states
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const [popularTags, setPopularTags] = useState([]);
+  const [searchTimeout, setSearchTimeout] = useState(null);
 
   /* ---------------- SCROLL EFFECT ---------------- */
   useEffect(() => {
@@ -243,9 +338,33 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  /* ---------------- KEYBOARD SHORTCUTS ---------------- */
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Close search with Escape
+      if (e.key === 'Escape') {
+        setShowSearchResults(false);
+        setSuggestions([]);
+      }
+      // Search with Enter
+      if (e.key === 'Enter' && searchQuery.trim() && e.target.tagName !== 'TEXTAREA') {
+        handleSearch(e);
+      }
+      // Focus search with Ctrl+K
+      if (e.ctrlKey && e.key === 'k') {
+        e.preventDefault();
+        document.querySelector('.search-input')?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [searchQuery]);
+
   /* ---------------- LOAD COURSES FOR EXPLORE MENU ---------------- */
   useEffect(() => {
     loadExploreCourses();
+    loadPopularTags();
   }, []);
 
   const loadExploreCourses = async () => {
@@ -257,6 +376,16 @@ export default function Navbar() {
       console.error("Failed to load courses", err);
     } finally {
       setCoursesLoading(false);
+    }
+  };
+
+  const loadPopularTags = async () => {
+    try {
+      const tags = await getPopularTags();
+      setPopularTags(tags.slice(0, 10));
+    } catch (error) {
+      console.error("Failed to load popular tags:", error);
+      setPopularTags(['Java', 'Python', 'React', 'JavaScript', 'Web Development', 'Testing', 'SQL', 'Data Science']);
     }
   };
 
@@ -311,14 +440,11 @@ export default function Navbar() {
     console.log(" Logging out user...");
 
     logout();
-
     clearProfile();
 
     setShowLogoutConfirm(false);
     setMenuOpen(false);
     setShowUserMenu(false);
-
-    console.log(" Refreshing page...");
 
     navigate("/", { replace: true });
 
@@ -327,15 +453,144 @@ export default function Navbar() {
     }, 100);
   };
 
-  /* ---------------- SEARCH HANDLER ---------------- */
-  const handleSearch = (e) => {
+  /* ---------------- DEBOUNCED SEARCH HANDLER ---------------- */
+  const handleSearchInputChange = async (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    
+    if (value.trim().length === 0) {
+      setShowSearchResults(false);
+      setSearchResults([]);
+      setSuggestions([]);
+      return;
+    }
+
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    const timeout = setTimeout(async () => {
+      if (value.trim().length > 1) {
+        try {
+          const suggestionsList = await getSearchSuggestions(value);
+          setSuggestions(suggestionsList.slice(0, 5));
+        } catch (error) {
+          console.error("Suggestions failed:", error);
+          setSuggestions([]);
+        }
+      } else {
+        setSuggestions([]);
+      }
+    }, 300); 
+    
+    setSearchTimeout(timeout);
+  };
+
+  const handleSearch = async (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery("");
-      setMenuOpen(false);
+    const query = searchQuery.trim();
+    
+    if (!query) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      setSuggestions([]);
+      return;
+    }
+    
+    setLoadingSearch(true);
+    const startTime = Date.now();
+    
+    try {
+      const results = await searchCourses(query, user?.id);
+      const searchDuration = Date.now() - startTime;
+      
+      // Log search analytics
+      console.log(`🔍 Search completed in ${searchDuration}ms`, {
+        query,
+        resultsCount: results.length,
+        userId: user?.id
+      });
+      
+      setSearchResults(results);
+      setShowSearchResults(true);
+      setSuggestions([]);
+    } catch (error) {
+      console.error("Search failed:", error);
+      setSearchResults([]);
+      setShowSearchResults(true); // Show empty state
+    } finally {
+      setLoadingSearch(false);
     }
   };
+
+  const handleSuggestionSelect = (suggestion) => {
+    setSearchQuery(suggestion);
+    setSuggestions([]);
+    
+    // Automatically search for selected suggestion
+    setLoadingSearch(true);
+    searchCourses(suggestion, user?.id)
+      .then(results => {
+        setSearchResults(results);
+        setShowSearchResults(true);
+      })
+      .catch(error => {
+        console.error("Search failed:", error);
+        setSearchResults([]);
+        setShowSearchResults(true);
+      })
+      .finally(() => {
+        setLoadingSearch(false);
+      });
+  };
+
+  const handleTagClick = async (tag) => {
+    setSearchQuery(tag);
+    setLoadingSearch(true);
+    setSuggestions([]);
+    
+    try {
+      const results = await searchCourses(tag, user?.id);
+      setSearchResults(results);
+      setShowSearchResults(true);
+    } catch (error) {
+      console.error("Search failed:", error);
+      setSearchResults([]);
+      setShowSearchResults(true);
+    } finally {
+      setLoadingSearch(false);
+    }
+  };
+
+  const handleCourseClick = (courseId) => {
+    navigate(`/course/${courseId}`);
+    setSearchQuery("");
+    setShowSearchResults(false);
+    setSearchResults([]);
+    setMenuOpen(false);
+  };
+
+  const closeSearchResults = () => {
+    setShowSearchResults(false);
+    setSuggestions([]);
+  };
+
+  // Click outside handler for search results
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showSearchResults && 
+        !event.target.closest('.search-container') &&
+        !event.target.closest('.search-results-panel')
+      ) {
+        setShowSearchResults(false);
+        setSuggestions([]);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSearchResults]);
 
   /* ---------------- CLOSE USER MENU ON CLICK OUTSIDE ---------------- */
   useEffect(() => {
@@ -474,25 +729,162 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* SEARCH BAR */}
-              <form
-                onSubmit={handleSearch}
-                className="relative flex-1 max-w-md"
-              >
-                <input
-                  type="text"
-                  placeholder="Search for anything"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 bg-blue-500 dark:bg-blue-600 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
-                >
-                  Search
-                </button>
-              </form>
+              {/* SEARCH BAR WITH DROPDOWN RESULTS */}
+              <div className="search-container relative flex-1 max-w-xl">
+                <form onSubmit={handleSearch} className="relative">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search courses (e.g., Java, Testing, React)"
+                      value={searchQuery}
+                      onChange={handleSearchInputChange}
+                      className="search-input w-full px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 bg-blue-500 dark:bg-blue-600 text-white px-3 py-1 rounded-full text-sm hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
+                    >
+                      <FiSearch size={16} />
+                    </button>
+                    
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setShowSearchResults(false);
+                          setSearchResults([]);
+                          setSuggestions([]);
+                        }}
+                        className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        <FiX size={18} />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Search Suggestions Dropdown */}
+                  {suggestions.length > 0 && (
+                    <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 max-h-80 overflow-y-auto">
+                      <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Suggestions
+                        </h4>
+                      </div>
+                      {suggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => handleSuggestionSelect(suggestion)}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0 flex items-center gap-3"
+                        >
+                          <FiSearch className="text-gray-400" size={16} />
+                          <span className="text-gray-700 dark:text-gray-300">{suggestion}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </form>
+                
+                {/* Search Results Panel */}
+                {showSearchResults && (
+                  <div className="search-results-panel absolute top-full mt-2 w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 max-h-[500px] overflow-hidden">
+                    {/* Results Header */}
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-gray-800 dark:text-white">
+                          Search Results
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {loadingSearch ? "Searching..." : `${searchResults.length} courses found`}
+                        </p>
+                      </div>
+                      <button
+                        onClick={closeSearchResults}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        <FiX size={20} />
+                      </button>
+                    </div>
+                    
+                    {/* Loading State */}
+                    {loadingSearch ? (
+                      <div className="p-8 text-center">
+                        <div className="inline-flex items-center justify-center w-12 h-12 border-4 border-blue-200 dark:border-blue-800 border-t-blue-600 dark:border-t-blue-500 rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          Searching for "{searchQuery}"...
+                        </p>
+                      </div>
+                    ) : searchResults.length > 0 ? (
+                      <div className="overflow-y-auto max-h-[400px]">
+                        {/* Popular Tags */}
+                        {popularTags.length > 0 && (
+                          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                              Popular Topics
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {popularTags.map((tag, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => handleTagClick(tag)}
+                                  className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                >
+                                  #{tag}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Course Results */}
+                        <div>
+                          {searchResults.map((course) => (
+                            <SearchResultCard 
+                              key={course.id || course._id} 
+                              course={course} 
+                              onClick={handleCourseClick}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+                          <FiSearch size={24} className="text-gray-400" />
+                        </div>
+                        <h4 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                          No courses found
+                        </h4>
+                        <p className="text-gray-500 dark:text-gray-400 mb-4">
+                          No results for "{searchQuery}". Try different keywords.
+                        </p>
+                        
+                        {/* Search Suggestions */}
+                        <div className="mt-4">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            Try searching for:
+                          </p>
+                          <div className="flex flex-wrap justify-center gap-2">
+                            {['Java Programming', 'JavaScript', 'React', 'Python', 'Web Development'].map((suggestion) => (
+                              <button
+                                key={suggestion}
+                                onClick={() => {
+                                  setSearchQuery(suggestion);
+                                  handleSearch({ preventDefault: () => {} });
+                                }}
+                                className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <Link
                 to="/plans-pricing"
@@ -699,16 +1091,75 @@ export default function Navbar() {
           {/* MOBILE MENU */}
           {menuOpen && (
             <div className="lg:hidden px-4 pb-6 space-y-4 border-t border-gray-200 dark:border-gray-700 bg-[#eaf9ff] dark:bg-gray-900">
-              {/* SEARCH BAR MOBILE */}
-              <form onSubmit={handleSearch} className="pt-4">
-                <input
-                  type="text"
-                  placeholder="Search for courses..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </form>
+              {/* MOBILE SEARCH BAR */}
+              <div className="search-container pt-4">
+                <form onSubmit={handleSearch} className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search courses..."
+                    value={searchQuery}
+                    onChange={handleSearchInputChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-500 dark:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
+                  >
+                    <FiSearch size={18} />
+                  </button>
+                </form>
+                
+                {/* Mobile Search Results */}
+                {showSearchResults && (
+                  <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                      <h4 className="font-medium text-gray-800 dark:text-white">
+                        Search Results
+                      </h4>
+                      <button
+                        onClick={closeSearchResults}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        <FiX size={20} />
+                      </button>
+                    </div>
+                    
+                    {loadingSearch ? (
+                      <div className="p-6 text-center">
+                        <div className="inline-block w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                        <p className="text-gray-600 dark:text-gray-400">Searching...</p>
+                      </div>
+                    ) : searchResults.length > 0 ? (
+                      <div className="max-h-80 overflow-y-auto">
+                        {searchResults.map((course) => (
+                          <div 
+                            key={course.id || course._id}
+                            onClick={() => handleCourseClick(course.id || course._id)}
+                            className="p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                          >
+                            <h5 className="font-medium text-gray-800 dark:text-white">
+                              {course.title}
+                            </h5>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              {course.category}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-6 text-center">
+                        <FiSearch size={32} className="text-gray-400 mx-auto mb-3" />
+                        <h5 className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          No results found
+                        </h5>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          No courses match "{searchQuery}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {isAuthenticated && user ? (
                 <>

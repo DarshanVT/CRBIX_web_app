@@ -106,10 +106,10 @@ export default function CourseGridSection() {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12">
       <div className="mb-6 md:mb-10">
-        <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white font-bold mb-2 md:mb-3">
+        <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-gray-900 dark:text-white font-bold mb-2 md:mb-3">
           Skills to transform your career and life
         </h2>
-        <p className="text-sm sm:text-base text-gray-400">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
           From critical skills to technical topics, explore top courses.
         </p>
       </div>

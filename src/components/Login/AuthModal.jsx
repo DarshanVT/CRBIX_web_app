@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { HiX } from "react-icons/hi";
+import { HiX, HiCheckCircle } from "react-icons/hi";
 import React, { useState, useEffect } from "react";
 import { FaFacebookF, FaGoogle, FaLinkedinIn } from "react-icons/fa";
 import { useAuth } from "./AuthContext";
@@ -10,9 +10,19 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
   const [isPanelActive, setIsPanelActive] = useState(mode === "signup");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [isMobile, setIsMobile] = useState(false);
-  const [currentView, setCurrentView] = useState("form"); // 'form' or 'panel'
-  
+
+  // Validation state for each field
+  const [fieldErrors, setFieldErrors] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNo: "",
+    password: "",
+    cPass: "",
+  });
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -26,11 +36,8 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
     const checkMobile = () => {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
-      if (mobile) {
-        setCurrentView("form");
-      }
     };
-    
+
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
@@ -40,6 +47,15 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
     if (isOpen) {
       setIsPanelActive(mode === "signup");
       setErrorMsg("");
+      setSuccessMsg("");
+      setFieldErrors({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phoneNo: "",
+        password: "",
+        cPass: "",
+      });
       setFormData({
         firstName: "",
         lastName: "",
@@ -48,47 +64,204 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
         password: "",
         cPass: "",
       });
-      
-      if (isMobile) {
-        setCurrentView("form");
-      }
     }
-  }, [mode, isOpen, isMobile]);
+  }, [mode, isOpen]);
 
+  // Field validation functions
+  const validateField = (name, value) => {
+    let error = "";
+
+    switch (name) {
+      case "firstName":
+        if (!value.trim()) {
+          error = "First name is required";
+        } else if (!/^[A-Za-z\s'-]+$/.test(value)) {
+          error = "Only letters, spaces, hyphens (-) and apostrophes (') are allowed";
+        } else if (value.trim().length < 2) {
+          error = "First name must be at least 2 characters";
+        } else if (value.trim().length > 50) {
+          error = "First name cannot exceed 50 characters";
+        }
+        break;
+
+      case "lastName":
+        if (!value.trim()) {
+          error = "Last name is required";
+        } else if (!/^[A-Za-z\s'-]+$/.test(value)) {
+          error = "Only letters, spaces, hyphens (-) and apostrophes (') are allowed";
+        } else if (value.trim().length < 2) {
+          error = "Last name must be at least 2 characters";
+        } else if (value.trim().length > 50) {
+          error = "Last name cannot exceed 50 characters";
+        }
+        break;
+
+      case "email":
+        if (!value.trim()) {
+          error = "Email is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          error = "Please enter a valid email address";
+        } else if (value.length > 100) {
+          error = "Email cannot exceed 100 characters";
+        }
+        break;
+
+      case "phoneNo":
+        // Phone is optional, but if provided, validate it
+        if (value.trim() && value !== "") {
+          // Remove any non-digit characters for validation
+          const cleanPhone = value.replace(/\D/g, '');
+          if (!/^\d+$/.test(cleanPhone)) {
+            error = "Phone number must contain only digits";
+          } else if (cleanPhone.length !== 10) {
+            error = "Phone number must be exactly 10 digits";
+          }
+        }
+        break;
+
+      case "password":
+        if (!value.trim()) {
+          error = "Password is required";
+        } else if (value.length < 6) {
+          error = "Password must be at least 6 characters";
+        } else if (value.length > 50) {
+          error = "Password cannot exceed 50 characters";
+        }
+        break;
+
+      case "cPass":
+        if (isPanelActive) {
+          if (!value.trim()) {
+            error = "Please confirm your password";
+          } else if (formData.password !== value) {
+            error = "Passwords do not match";
+          }
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    return error;
+  };
+
+  // Handle input change with real-time validation for some fields
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clean input based on field type
+    let cleanedValue = value;
+    
+    switch (name) {
+      case "firstName":
+      case "lastName":
+        // Remove numbers and symbols (keeping only letters, spaces, hyphens, apostrophes)
+        cleanedValue = value.replace(/[^A-Za-z\s'-]/g, '');
+        break;
+        
+      case "phoneNo":
+        // Remove non-digit characters
+        cleanedValue = value.replace(/\D/g, '');
+        // Limit to 10 digits
+        if (cleanedValue.length > 10) {
+          cleanedValue = cleanedValue.substring(0, 10);
+        }
+        break;
+        
+      case "email":
+        // Remove spaces from email
+        cleanedValue = value.replace(/\s/g, '');
+        break;
+        
+      default:
+        cleanedValue = value;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: cleanedValue }));
+    
+    // Clear field-specific error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+    
+    // Clear general error and success messages
     if (errorMsg) setErrorMsg("");
+    if (successMsg) setSuccessMsg("");
+    
+    // Real-time validation for confirm password when password changes
+    if (name === "password" && formData.cPass) {
+      const cPassError = validateField("cPass", formData.cPass);
+      setFieldErrors((prev) => ({ ...prev, cPass: cPassError }));
+    }
   };
+
+  // Validate specific field on blur
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const error = validateField(name, value);
+    setFieldErrors((prev) => ({ ...prev, [name]: error }));
+  };
+
+  // Validate all fields before submission
+  const validateAllFields = () => {
+    const errors = {};
+    let isValid = true;
+
+    // Only validate required fields for the current mode
+    const fieldsToValidate = isPanelActive 
+      ? ["firstName", "lastName", "email", "password", "cPass"] 
+      : ["email", "password"];
+
+    fieldsToValidate.forEach((field) => {
+      const error = validateField(field, formData[field]);
+      if (error) {
+        errors[field] = error;
+        isValid = false;
+      }
+    });
+
+    // Validate phone if provided (optional field)
+    if (formData.phoneNo && formData.phoneNo.trim() !== "") {
+      const phoneError = validateField("phoneNo", formData.phoneNo);
+      if (phoneError) {
+        errors.phoneNo = phoneError;
+        isValid = false;
+      }
+    }
+
+    setFieldErrors(errors);
+    return isValid;
+  };
+
+  // Auto hide success message after 3 seconds
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => {
+        setSuccessMsg("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
 
   // ================= REGISTER =================
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields first
+    if (!validateAllFields()) {
+      setErrorMsg("Please fix the errors in the form");
+      return;
+    }
+
     setLoading(true);
     setErrorMsg("");
+    setSuccessMsg("");
 
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-      setErrorMsg("Please fill all required fields");
-      setLoading(false);
-      return;
-    }
-
-    if (formData.password !== formData.cPass) {
-      setErrorMsg("Passwords don't match!");
-      setLoading(false);
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setErrorMsg("Password must be at least 6 characters");
-      setLoading(false);
-      return;
-    }
-
-    console.log(" Attempting registration...");
+    console.log("🚀 Attempting registration...", formData);
     const res = await registerUser(formData);
-    console.log(" Registration response:", res);
-    
+    console.log("✅ Registration response:", res);
+
     setLoading(false);
 
     if (!res.success) {
@@ -96,46 +269,78 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
       return;
     }
 
-    if (res.user) {
-      console.log(" Registration successful ");
-      loginSuccess(res.user);
-      onClose();
-    } else {
-      alert("Registration successful! Please login.");
-      if (isMobile) {
-        setIsPanelActive(false);
-        setCurrentView("form");
-      } else {
-        setIsPanelActive(false);
-      }
-      
-      setFormData(prev => ({
-        ...prev,
-        password: "",
-        cPass: ""
-      }));
-    }
+    console.log("📊 Registration Response Data:", {
+      hasUser: !!res.user,
+      user: res.user,
+      hasUserId: !!res.userId,
+      userId: res.userId,
+      hasToken: !!res.token,
+      hasData: !!res.data,
+      message: res.message
+    });
+
+    // Check if API automatically logged in the user (has token in localStorage)
+    const tokenInStorage = localStorage.getItem("auth_token");
+    console.log("🔍 Token in localStorage after register:", tokenInStorage);
+    
+    // ALWAYS show success message first
+    setSuccessMsg("Account created successfully! Please login.");
+    
+    // ALWAYS clear password fields
+    setFormData((prev) => ({
+      ...prev,
+      password: "",
+      cPass: "",
+    }));
+    
+    // Clear password field errors
+    setFieldErrors((prev) => ({
+      ...prev,
+      password: "",
+      cPass: "",
+    }));
+    
+    // Switch to login panel after 2 seconds
+    setTimeout(() => {
+      console.log("🔄 Switching to login panel");
+      setIsPanelActive(false); // Switch to login
+    }, 2000);
+    
+    // DON'T call loginSuccess - let user login manually
   };
 
+  // ================= LOGIN =================
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setErrorMsg("");
-
-    if (!formData.email || !formData.password) {
-      setErrorMsg("Please enter email and password");
-      setLoading(false);
+    
+    // Validate login fields
+    const loginErrors = {};
+    if (!formData.email.trim()) loginErrors.email = "Email is required";
+    if (!formData.password.trim()) loginErrors.password = "Password is required";
+    
+    if (Object.keys(loginErrors).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...loginErrors }));
+      setErrorMsg("Please fill in all required fields");
       return;
     }
 
-    console.log("Attempting login...");
-    const res = await loginUser({
+    setLoading(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    console.log("🚀 Attempting login...", {
+      email: formData.email,
+      password: formData.password
+    });
+    
+    const loginPayload = {
       email: formData.email,
       password: formData.password,
-    });
+    };
 
-    console.log(" Login response:", res);
-    
+    const res = await loginUser(loginPayload);
+    console.log("✅ Login response:", res);
+
     setLoading(false);
 
     if (!res.success) {
@@ -143,39 +348,90 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
       return;
     }
 
-    console.log(" After login, localStorage:", {
-      auth_token: localStorage.getItem('auth_token')?.substring(0, 20) + '...',
-      user_id: localStorage.getItem('user_id'),
-      user_info: localStorage.getItem('user_info')
+    console.log("📊 Login Response Data:", {
+      hasUser: !!res.user,
+      user: res.user,
+      hasUserId: !!res.userId,
+      userId: res.userId,
+      hasToken: !!res.token,
+      token: res.token ? `${res.token.substring(0, 20)}...` : 'no token',
+      hasData: !!res.data,
+      fullResponse: res
     });
 
+    console.log("🔍 Checking localStorage AFTER login API call:");
+    console.log("auth_token:", localStorage.getItem("auth_token"));
+    console.log("user_id:", localStorage.getItem("user_id"));
+    console.log("user_info:", localStorage.getItem("user_info"));
+
+    let userDataToPass = null;
+
     if (res.user) {
-      console.log(" Login successful with user object");
-      loginSuccess(res.user);
-      onClose();
+      userDataToPass = res.user;
     } else if (res.userId) {
-      console.log(" Login successful with userId");
-      loginSuccess({ id: res.userId, email: formData.email });
-      onClose();
-    } else {
-      const userInfo = localStorage.getItem('user_info');
+      userDataToPass = { 
+        id: res.userId, 
+        email: formData.email 
+      };
+    } else if (res.data) {
+      userDataToPass = res.data;
+    }
+
+    // If still no user data, check localStorage
+    if (!userDataToPass) {
+      const userInfo = localStorage.getItem("user_info");
       if (userInfo) {
-        console.log("Login successful, user found in localStorage");
-        loginSuccess(JSON.parse(userInfo));
-        onClose();
-      } else {
-        setErrorMsg("Login successful but no user data received");
+        try {
+          userDataToPass = JSON.parse(userInfo);
+          console.log("📦 Found user data in localStorage:", userDataToPass);
+        } catch (err) {
+          console.error("❌ Error parsing localStorage user_info:", err);
+        }
       }
+    }
+
+    // If we have user data, proceed with loginSuccess
+    if (userDataToPass) {
+      console.log("🎉 Login successful!");
+      
+      // Show success message first
+      setSuccessMsg("Login successful! Welcome back!");
+      
+      // Then login and close modal after 2 seconds
+      setTimeout(() => {
+        console.log("🔄 Calling loginSuccess...");
+        const loginResult = loginSuccess(userDataToPass);
+        console.log("✅ loginSuccess result:", loginResult);
+        
+        // Close modal
+        onClose();
+      }, 2000);
+    } else {
+      console.error("❌ No user data found in response or localStorage");
+      setErrorMsg("Login successful but no user data received. Please refresh the page.");
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
     }
   };
 
   const switchAuthMode = () => {
     setIsPanelActive(!isPanelActive);
     setErrorMsg("");
-    setFormData(prev => ({
+    setSuccessMsg("");
+    setFieldErrors({
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNo: "",
+      password: "",
+      cPass: "",
+    });
+    setFormData((prev) => ({
       ...prev,
       password: "",
-      cPass: ""
+      cPass: "",
     }));
   };
 
@@ -183,12 +439,28 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
   const fancyBlue = "#2196f3";
   const blueGradient = `linear-gradient(135deg, ${darkBlue} 0%, ${fancyBlue} 100%)`;
 
-  // Responsive wrapper styles
+  // Helper function to get input style with error state
+  const getInputStyle = (fieldName) => {
+    const hasError = fieldErrors[fieldName];
+    return {
+      backgroundColor: darkMode ? "#374151" : "#f3f4f6",
+      border: hasError ? "2px solid #ef4444" : "2px solid transparent",
+      borderRadius: "12px",
+      padding: isMobile ? "14px 16px" : "10px 14px",
+      margin: "8px 0",
+      width: "100%",
+      fontSize: isMobile ? "16px" : "14px",
+      transition: "all 0.3s ease",
+      fontFamily: "'Poppins', sans-serif",
+      color: darkMode ? "#f3f4f6" : "#1f2937",
+    };
+  };
+
   const wrapperStyles = {
     backgroundColor: darkMode ? "#1f2937" : "#fff",
     borderRadius: isMobile ? "12px" : "20px",
-    boxShadow: darkMode 
-      ? "0 20px 60px rgba(0, 0, 0, 0.5)" 
+    boxShadow: darkMode
+      ? "0 20px 60px rgba(0, 0, 0, 0.5)"
       : "0 20px 60px rgba(0, 0, 0, 0.3)",
     position: "relative",
     overflow: "hidden",
@@ -200,7 +472,6 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
     transition: "all 0.3s ease",
   };
 
-  // Desktop form styles
   const desktopFormBoxStyles = {
     position: "absolute",
     top: 0,
@@ -225,7 +496,6 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
     transform: isPanelActive ? "translateX(100%)" : "translateX(0)",
   };
 
-  // Mobile form styles
   const mobileFormStyles = {
     padding: isMobile ? "40px 20px" : "0 50px",
     display: "flex",
@@ -297,19 +567,6 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
     textAlign: "center",
     transition: "background-color 0.3s",
     width: "100%",
-  };
-
-  const input = {
-    backgroundColor: darkMode ? "#374151" : "#f3f4f6",
-    border: errorMsg ? "2px solid #ef4444" : "2px solid transparent",
-    borderRadius: "12px",
-    padding: isMobile ? "14px 16px" : "10px 14px",
-    margin: "8px 0",
-    width: "100%",
-    fontSize: isMobile ? "16px" : "14px",
-    transition: "all 0.3s ease",
-    fontFamily: "'Poppins', sans-serif",
-    color: darkMode ? "#f3f4f6" : "#1f2937",
   };
 
   const button = {
@@ -405,6 +662,17 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
     padding: "5px 10px",
   };
 
+  const errorTextStyle = {
+    color: "#ef4444",
+    fontSize: "12px",
+    textAlign: "left",
+    marginTop: "-4px",
+    marginBottom: "8px",
+    fontFamily: "'Poppins', sans-serif",
+    paddingLeft: "4px",
+    minHeight: "16px",
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -439,42 +707,78 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                 onClick={onClose}
                 className="absolute -top-10 -right-1 md:-right-4 lg:-right-1 bg-white dark:bg-gray-800 rounded-full p-2 shadow-xl hover:bg-gray-100 dark:hover:bg-gray-700 z-[10000] transition-all duration-300"
                 style={{
-                  boxShadow: darkMode 
-                    ? "0 8px 25px rgba(0, 0, 0, 0.3)" 
+                  boxShadow: darkMode
+                    ? "0 8px 25px rgba(0, 0, 0, 0.3)"
                     : "0 8px 25px rgba(0, 0, 0, 0.15)",
                 }}
               >
                 <HiX size={20} className="text-gray-700 dark:text-gray-300" />
               </button>
 
-              {/* ERROR MESSAGE */}
+              {/* ERROR MESSAGE POPUP */}
               {errorMsg && (
-                <div className={`absolute -top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 py-3 rounded-lg shadow-lg transition-colors duration-200 ${
-                  darkMode 
-                    ? "bg-red-900/30 border border-red-800 text-red-300" 
-                    : "bg-red-50 border border-red-200 text-red-700"
-                }`}>
-                  <p className="text-center font-medium">{errorMsg}</p>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className={`absolute -top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 py-3 rounded-lg shadow-lg transition-colors duration-200 ${
+                    darkMode
+                      ? "bg-red-900/30 border border-red-800 text-red-300"
+                      : "bg-red-50 border border-red-200 text-red-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <HiX className="text-red-500 flex-shrink-0" />
+                    <p className="text-center font-medium">{errorMsg}</p>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* SUCCESS MESSAGE POPUP */}
+              {successMsg && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className={`absolute -top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 py-3 rounded-lg shadow-lg transition-colors duration-200 ${
+                    darkMode
+                      ? "bg-green-900/30 border border-green-800 text-green-300"
+                      : "bg-green-50 border border-green-200 text-green-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <HiCheckCircle className="text-green-500 flex-shrink-0" />
+                    <p className="text-center font-medium">{successMsg}</p>
+                  </div>
+                </motion.div>
               )}
 
               {/* AUTH FORM */}
               <div style={wrapperStyles}>
                 {isMobile ? (
-                  /* MOBILE VIEW - SIMPLIFIED (No Panel View) */
+                  /* MOBILE VIEW */
                   <div style={mobileFormStyles}>
-                    <form style={form} onSubmit={isPanelActive ? handleRegisterSubmit : handleLoginSubmit}>
+                    <form
+                      style={form}
+                      onSubmit={
+                        isPanelActive ? handleRegisterSubmit : handleLoginSubmit
+                      }
+                    >
                       <h1 style={headingStyle}>
                         {isPanelActive ? "Create Account" : "Sign In"}
                       </h1>
 
                       {/* Social Login */}
-                      <div style={{ 
-                        margin: isPanelActive ? "5px 0 15px 0" : "15px 0 20px 0", 
-                        display: "flex", 
-                        justifyContent: "center", 
-                        gap: "12px" 
-                      }}>
+                      <div
+                        style={{
+                          margin: isPanelActive
+                            ? "5px 0 15px 0"
+                            : "15px 0 20px 0",
+                          display: "flex",
+                          justifyContent: "center",
+                          gap: "12px",
+                        }}
+                      >
                         <button type="button" style={social}>
                           <FaFacebookF />
                         </button>
@@ -492,56 +796,98 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                           <>
                             <input
                               name="firstName"
-                              style={input}
-                              placeholder="First Name"
+                              style={getInputStyle("firstName")}
+                              placeholder="First Name *"
                               value={formData.firstName}
                               onChange={handleInputChange}
+                              onBlur={handleBlur}
                               required
                             />
+                            {fieldErrors.firstName && (
+                              <div style={errorTextStyle}>
+                                {fieldErrors.firstName}
+                              </div>
+                            )}
+
                             <input
                               name="lastName"
-                              style={input}
-                              placeholder="Last Name"
+                              style={getInputStyle("lastName")}
+                              placeholder="Last Name *"
                               value={formData.lastName}
                               onChange={handleInputChange}
+                              onBlur={handleBlur}
                               required
                             />
+                            {fieldErrors.lastName && (
+                              <div style={errorTextStyle}>
+                                {fieldErrors.lastName}
+                              </div>
+                            )}
+
                             <input
                               name="email"
                               type="email"
-                              style={input}
-                              placeholder="Email Address"
+                              style={getInputStyle("email")}
+                              placeholder="Email Address *"
                               value={formData.email}
                               onChange={handleInputChange}
+                              onBlur={handleBlur}
                               required
                             />
+                            {fieldErrors.email && (
+                              <div style={errorTextStyle}>
+                                {fieldErrors.email}
+                              </div>
+                            )}
+
                             <input
                               name="phoneNo"
                               type="tel"
-                              style={input}
-                              placeholder="Phone Number"
+                              style={getInputStyle("phoneNo")}
+                              placeholder="Phone Number (10 digits, optional)"
                               value={formData.phoneNo}
                               onChange={handleInputChange}
+                              onBlur={handleBlur}
+                              maxLength="10"
                             />
+                            {fieldErrors.phoneNo && (
+                              <div style={errorTextStyle}>
+                                {fieldErrors.phoneNo}
+                              </div>
+                            )}
+
                             <input
                               name="password"
                               type="password"
-                              style={input}
-                              placeholder="Password (min. 6 characters)"
+                              style={getInputStyle("password")}
+                              placeholder="Password (min. 6 characters) *"
                               value={formData.password}
                               onChange={handleInputChange}
+                              onBlur={handleBlur}
                               required
                               minLength={6}
                             />
+                            {fieldErrors.password && (
+                              <div style={errorTextStyle}>
+                                {fieldErrors.password}
+                              </div>
+                            )}
+
                             <input
                               name="cPass"
                               type="password"
-                              style={input}
-                              placeholder="Confirm Password"
+                              style={getInputStyle("cPass")}
+                              placeholder="Confirm Password *"
                               value={formData.cPass}
                               onChange={handleInputChange}
+                              onBlur={handleBlur}
                               required
                             />
+                            {fieldErrors.cPass && (
+                              <div style={errorTextStyle}>
+                                {fieldErrors.cPass}
+                              </div>
+                            )}
                           </>
                         ) : (
                           /* LOGIN FORM - MOBILE */
@@ -549,24 +895,43 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                             <input
                               name="email"
                               type="email"
-                              style={input}
-                              placeholder="Email Address"
+                              style={getInputStyle("email")}
+                              placeholder="Email Address *"
                               value={formData.email}
                               onChange={handleInputChange}
+                              onBlur={handleBlur}
                               required
                             />
+                            {fieldErrors.email && (
+                              <div style={errorTextStyle}>
+                                {fieldErrors.email}
+                              </div>
+                            )}
+
                             <input
                               name="password"
                               type="password"
-                              style={input}
-                              placeholder="Password"
+                              style={getInputStyle("password")}
+                              placeholder="Password *"
                               value={formData.password}
                               onChange={handleInputChange}
+                              onBlur={handleBlur}
                               required
                             />
+                            {fieldErrors.password && (
+                              <div style={errorTextStyle}>
+                                {fieldErrors.password}
+                              </div>
+                            )}
 
-                            <div style={{ textAlign: "right", margin: "10px 0 15px 0" }}>
-                              <a href="#"
+                            <div
+                              style={{
+                                textAlign: "right",
+                                margin: "10px 0 15px 0",
+                              }}
+                            >
+                              <a
+                                href="#"
                                 style={{
                                   color: darkMode ? "#60a5fa" : fancyBlue,
                                   fontSize: "14px",
@@ -581,15 +946,14 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                           </>
                         )}
 
-                        <button 
-                          style={button} 
-                          type="submit" 
-                          disabled={loading}
-                        >
-                          {loading 
-                            ? (isPanelActive ? "Creating Account..." : "Signing In...")
-                            : (isPanelActive ? "SIGN UP" : "SIGN IN")
-                          }
+                        <button style={button} type="submit" disabled={loading}>
+                          {loading
+                            ? isPanelActive
+                              ? "Creating Account..."
+                              : "Signing In..."
+                            : isPanelActive
+                              ? "SIGN UP"
+                              : "SIGN IN"}
                         </button>
 
                         {/* Direct switch button - MOBILE */}
@@ -599,8 +963,8 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                           onClick={switchAuthMode}
                           disabled={loading}
                         >
-                          {isPanelActive 
-                            ? "Already have an account? Sign In" 
+                          {isPanelActive
+                            ? "Already have an account? Sign In"
                             : "Don't have an account? Sign Up"}
                         </button>
                       </div>
@@ -614,7 +978,14 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                       <form style={form} onSubmit={handleRegisterSubmit}>
                         <h1 style={headingStyle}>Create Account</h1>
 
-                        <div style={{ margin: "5px 0 5px 0", display: "flex", justifyContent: "center", gap: "12px" }}>
+                        <div
+                          style={{
+                            margin: "5px 0 5px 0",
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: "12px",
+                          }}
+                        >
                           <button type="button" style={social}>
                             <FaFacebookF />
                           </button>
@@ -629,60 +1000,102 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                         <div style={{ width: "100%", maxWidth: "320px" }}>
                           <input
                             name="firstName"
-                            style={input}
-                            placeholder="First Name"
+                            style={getInputStyle("firstName")}
+                            placeholder="First Name *"
                             value={formData.firstName}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                           />
+                          {fieldErrors.firstName && (
+                            <div style={errorTextStyle}>
+                              {fieldErrors.firstName}
+                            </div>
+                          )}
+
                           <input
                             name="lastName"
-                            style={input}
-                            placeholder="Last Name"
+                            style={getInputStyle("lastName")}
+                            placeholder="Last Name *"
                             value={formData.lastName}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                           />
+                          {fieldErrors.lastName && (
+                            <div style={errorTextStyle}>
+                              {fieldErrors.lastName}
+                            </div>
+                          )}
+
                           <input
                             name="email"
                             type="email"
-                            style={input}
-                            placeholder="Email Address"
+                            style={getInputStyle("email")}
+                            placeholder="Email Address *"
                             value={formData.email}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                           />
+                          {fieldErrors.email && (
+                            <div style={errorTextStyle}>
+                              {fieldErrors.email}
+                            </div>
+                          )}
+
                           <input
                             name="phoneNo"
                             type="tel"
-                            style={input}
-                            placeholder="Phone Number"
+                            style={getInputStyle("phoneNo")}
+                            placeholder="Phone Number (10 digits, optional)"
                             value={formData.phoneNo}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
+                            maxLength="10"
                           />
+                          {fieldErrors.phoneNo && (
+                            <div style={errorTextStyle}>
+                              {fieldErrors.phoneNo}
+                            </div>
+                          )}
+
                           <input
                             name="password"
                             type="password"
-                            style={input}
-                            placeholder="Password (min. 6 characters)"
+                            style={getInputStyle("password")}
+                            placeholder="Password (min. 6 characters) *"
                             value={formData.password}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                             minLength={6}
                           />
+                          {fieldErrors.password && (
+                            <div style={errorTextStyle}>
+                              {fieldErrors.password}
+                            </div>
+                          )}
+
                           <input
                             name="cPass"
                             type="password"
-                            style={input}
-                            placeholder="Confirm Password"
+                            style={getInputStyle("cPass")}
+                            placeholder="Confirm Password *"
                             value={formData.cPass}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                           />
+                          {fieldErrors.cPass && (
+                            <div style={errorTextStyle}>
+                              {fieldErrors.cPass}
+                            </div>
+                          )}
 
-                          <button 
-                            style={button} 
-                            type="submit" 
+                          <button
+                            style={button}
+                            type="submit"
                             disabled={loading}
                           >
                             {loading ? "Creating Account..." : "SIGN UP"}
@@ -696,7 +1109,14 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                       <form style={form} onSubmit={handleLoginSubmit}>
                         <h1 style={headingStyle}>Sign In</h1>
 
-                        <div style={{ margin: "15px 0 20px 0", display: "flex", justifyContent: "center", gap: "12px" }}>
+                        <div
+                          style={{
+                            margin: "15px 0 20px 0",
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: "12px",
+                          }}
+                        >
                           <button type="button" style={social}>
                             <FaFacebookF />
                           </button>
@@ -712,23 +1132,41 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                           <input
                             name="email"
                             type="email"
-                            style={input}
-                            placeholder="Email Address"
+                            style={getInputStyle("email")}
+                            placeholder="Email Address *"
                             value={formData.email}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                           />
+                          {fieldErrors.email && (
+                            <div style={errorTextStyle}>
+                              {fieldErrors.email}
+                            </div>
+                          )}
+
                           <input
                             name="password"
                             type="password"
-                            style={input}
-                            placeholder="Password"
+                            style={getInputStyle("password")}
+                            placeholder="Password *"
                             value={formData.password}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                           />
+                          {fieldErrors.password && (
+                            <div style={errorTextStyle}>
+                              {fieldErrors.password}
+                            </div>
+                          )}
 
-                          <div style={{ textAlign: "right", margin: "10px 0 15px 0" }}>
+                          <div
+                            style={{
+                              textAlign: "right",
+                              margin: "10px 0 15px 0",
+                            }}
+                          >
                             <a
                               href="#"
                               style={{
@@ -743,9 +1181,9 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                             </a>
                           </div>
 
-                          <button 
-                            style={button} 
-                            type="submit" 
+                          <button
+                            style={button}
+                            type="submit"
                             disabled={loading}
                           >
                             {loading ? "Signing In..." : "SIGN IN"}
@@ -760,13 +1198,22 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                         <div style={panelLeft}>
                           <h1 style={panelHeadingStyle}>Welcome Back!</h1>
                           <p style={paragraphStyle}>
-                            Stay connected by logging in with your credentials and continue your experience
+                            Stay connected by logging in with your credentials
+                            and continue your experience
                           </p>
-                          <button 
-                            style={ghostBtn} 
+                          <button
+                            style={ghostBtn}
                             onClick={() => {
                               setIsPanelActive(false);
                               setErrorMsg("");
+                              setFieldErrors({
+                                firstName: "",
+                                lastName: "",
+                                email: "",
+                                phoneNo: "",
+                                password: "",
+                                cPass: "",
+                              });
                             }}
                             disabled={loading}
                           >
@@ -777,13 +1224,22 @@ export default function AuthModal({ isOpen, onClose, mode = "login" }) {
                         <div style={panelRight}>
                           <h1 style={panelHeadingStyle}>Hey There!</h1>
                           <p style={paragraphStyle}>
-                            Begin your amazing journey by creating an account with us today
+                            Begin your amazing journey by creating an account
+                            with us today
                           </p>
-                          <button 
-                            style={ghostBtn} 
+                          <button
+                            style={ghostBtn}
                             onClick={() => {
                               setIsPanelActive(true);
                               setErrorMsg("");
+                              setFieldErrors({
+                                firstName: "",
+                                lastName: "",
+                                email: "",
+                                phoneNo: "",
+                                password: "",
+                                cPass: "",
+                              });
                             }}
                             disabled={loading}
                           >
