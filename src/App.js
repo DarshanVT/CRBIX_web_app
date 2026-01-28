@@ -9,7 +9,7 @@ import Cart from "./pages/Cart";
 import PrivacyPolicy from "./components/Footer/privacyPolicy";
 import CourseDetails from "./pages/CourseDetails";
 import Payment from "./pages/Payment";
-import { FavoritesProvider } from "./components/Navbar/FavoritesContext";
+import { FavoritesProvider, useFavorites } from "./components/Navbar/FavoritesContext"; // Import useFavorites here
 import { ProfileProvider } from "./components/Profile/ProfileContext";
 import ProfilePage from "./pages/ProfilePage";
 import Investors from "./components/Footer/Investors";
@@ -30,19 +30,20 @@ import SettingsPage from "./components/Profile/SettingsPage";
 import CertificationsPage from "./components/Profile/CertificationsPage";
 import PlacementPage from "./components/Profile/PlacementPage";
 import { ThemeProvider } from "./components/Profile/ThemeContext"; 
+import ReminderPopup from "./pages/ReminderPopup";
 
-function AppContent() {
-  const { authOpen, authMode, openLogin, openSignup, closeAuth } = useAuth();
+// Create a separate component that uses useFavorites
+function AppWithReminders() {
+  const { showReminder, reminderCourse, handleDismissReminder, handleReminderPurchaseClick } = useFavorites();
 
   return (
-    <CartProvider>
-        <FavoritesProvider>
+    <>
+      {/* Your existing AppContent without the useFavorites hook */}
       <Router>
         <ScrollToTop />
-
         <div className="min-h-screen flex flex-col">
           {/* NAVBAR */}
-          <Navbar openLogin={openLogin} openSignup={openSignup} />
+          <Navbar />
 
           {/* PAGE CONTENT */}
           <main className="flex-1">
@@ -73,26 +74,43 @@ function AppContent() {
           </main>
 
           {/* FOOTER */}
-          
           <Footer />
-
-          {/* AUTH MODAL */}
-          <AuthModal isOpen={authOpen} onClose={closeAuth} mode={authMode} />
+          
+          {/* REMINDER POPUP */}
+          <ReminderPopup
+            isOpen={showReminder}
+            course={reminderCourse}
+            onDismiss={(courseId) => handleDismissReminder(courseId, false)}
+            onDismissPermanently={(courseId) => handleDismissReminder(courseId, true)}
+            onPurchase={handleReminderPurchaseClick}
+          />
         </div>
       </Router>
-      </FavoritesProvider>
-    </CartProvider>
+    </>
   );
+}
+
+// Create a wrapper component for AuthModal
+function AuthModalWrapper() {
+  const { authOpen, authMode, closeAuth } = useAuth();
+  return <AuthModal isOpen={authOpen} onClose={closeAuth} mode={authMode} />;
 }
 
 function App() {
   return (
     <AuthProvider>
-      <ThemeProvider> {/* ← Added ThemeProvider wrapper */}
+      <ThemeProvider>
         <ProfileProvider>
-          <AppContent />
+          <CartProvider>
+            <FavoritesProvider>
+              {/* Use the AppWithReminders component inside FavoritesProvider */}
+              <AppWithReminders />
+              {/* AuthModalWrapper needs to be inside AuthProvider but outside other contexts */}
+              <AuthModalWrapper />
+            </FavoritesProvider>
+          </CartProvider>
         </ProfileProvider>
-      </ThemeProvider> {/* ← Added ThemeProvider wrapper */}
+      </ThemeProvider>
     </AuthProvider>
   );
 }

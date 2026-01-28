@@ -2,149 +2,29 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import logo from "../../assets/cdaxxlogo.png";
 import { Link, useNavigate } from "react-router-dom";
-import { HiMenu, HiX, HiChevronRight, HiChevronDown, HiOutlineShoppingCart, HiHeart } from "react-icons/hi";
+import {
+  HiMenu,
+  HiX,
+  HiChevronRight,
+  HiChevronDown,
+  HiOutlineShoppingCart,
+  HiHeart,
+} from "react-icons/hi";
 import { FiSearch, FiX, FiStar } from "react-icons/fi";
 import { HiOutlineCurrencyRupee } from "react-icons/hi";
-import { searchCourses, getSearchSuggestions, getPopularTags, getCourses } from "../../Api/course.api";
+import {
+  searchCourses,
+  getSearchSuggestions,
+  getPopularTags,
+  getCourses,
+} from "../../Api/course.api";
 import { useAuth } from "../Login/AuthContext";
 import { useProfile } from "../Profile/ProfileContext";
 import { useFavorites } from "./FavoritesContext";
 import { useCart } from "./CartContext";
+import ExploreMenu, { MobileExploreMenu, exploreCategories } from "./explore";
 
-/* EXPLORE DATA - Categories with keywords for better matching */
-const exploreCategories = {
-  "Web Development": {
-    keywords: [
-      "web",
-      "react",
-      "javascript",
-      "html",
-      "css",
-      "frontend",
-      "backend",
-      "node",
-      "vue",
-      "angular",
-    ],
-  },
-  "Programming Languages": {
-    keywords: [
-      "java",
-      "python",
-      "c++",
-      "c#",
-      "javascript",
-      "typescript",
-      "go",
-      "ruby",
-      "swift",
-      "kotlin",
-      "programming",
-    ],
-  },
-  "Mobile Development": {
-    keywords: [
-      "mobile",
-      "android",
-      "ios",
-      "react native",
-      "flutter",
-      "kotlin",
-      "swift",
-      "xamarin",
-    ],
-  },
-  "Software Testing": {
-    keywords: [
-      "testing",
-      "qa",
-      "selenium",
-      "test",
-      "automation",
-      "manual",
-      "java",
-      "python",
-      "junit",
-      "testng",
-    ],
-  },
-  "Data Analytics": {
-    keywords: [
-      "data",
-      "analytics",
-      "analysis",
-      "sql",
-      "excel",
-      "power bi",
-      "tableau",
-      "business intelligence",
-      "data structure",
-      "algorithm",
-    ],
-  },
-  "Data Science": {
-    keywords: [
-      "data science",
-      "machine learning",
-      "ai",
-      "statistics",
-      "python",
-      "r",
-      "tensorflow",
-      "pytorch",
-    ],
-  },
-  "UI/UX Design": {
-    keywords: [
-      "ui",
-      "ux",
-      "design",
-      "figma",
-      "prototype",
-      "wireframe",
-      "user experience",
-      "adobe xd",
-    ],
-  },
-  "AI & Machine Learning": {
-    keywords: [
-      "ai",
-      "artificial intelligence",
-      "machine learning",
-      "deep learning",
-      "neural network",
-      "tensorflow",
-      "pytorch",
-      "nlp",
-    ],
-  },
-  "Database Management": {
-    keywords: [
-      "database",
-      "sql",
-      "mysql",
-      "mongodb",
-      "postgresql",
-      "oracle",
-      "nosql",
-      "redis",
-    ],
-  },
-  "Computer Networking": {
-    keywords: [
-      "networking",
-      "network",
-      "ccna",
-      "tcp/ip",
-      "firewall",
-      "security",
-      "aws",
-      "azure",
-      "cloud",
-    ],
-  },
-};
-
+/* -------------------- Logout Confirmation Component -------------------- */
 const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
 
@@ -217,7 +97,7 @@ const LogoutConfirmation = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
-// Mini Course Card Component for Search Results
+/* -------------------- Search Result Card Component -------------------- */
 const SearchResultCard = ({ course, onClick }) => {
   const {
     id,
@@ -231,48 +111,54 @@ const SearchResultCard = ({ course, onClick }) => {
   } = course;
 
   return (
-    <div 
+    <div
       onClick={() => onClick(id)}
       className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
     >
       {/* Thumbnail */}
       <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
         <img
-          src={thumbnailUrl || '/default-course.jpg'}
+          src={thumbnailUrl || "/default-course.jpg"}
           alt={title}
           className="w-full h-full object-cover"
         />
       </div>
-      
+
       {/* Course Info */}
       <div className="flex-1 min-w-0">
         <h4 className="font-medium text-gray-800 dark:text-white text-sm line-clamp-1">
           {title}
         </h4>
-        
+
         {instructor && (
           <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
             {instructor}
           </p>
         )}
-        
+
         {category && (
           <span className="inline-block px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded-full mt-1">
             {category}
           </span>
         )}
-        
+
         <div className="flex items-center justify-between mt-2">
           {/* Price */}
           <div className="flex items-center gap-1">
             {discountedPrice ? (
               <>
                 <span className="text-sm font-bold text-gray-800 dark:text-white">
-                  <HiOutlineCurrencyRupee className="inline -mt-0.5" size={12} />
+                  <HiOutlineCurrencyRupee
+                    className="inline -mt-0.5"
+                    size={12}
+                  />
                   {discountedPrice}
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 line-through">
-                  <HiOutlineCurrencyRupee className="inline -mt-0.5" size={10} />
+                  <HiOutlineCurrencyRupee
+                    className="inline -mt-0.5"
+                    size={10}
+                  />
                   {price}
                 </span>
               </>
@@ -287,7 +173,7 @@ const SearchResultCard = ({ course, onClick }) => {
               </span>
             )}
           </div>
-          
+
           {/* Rating */}
           {rating && (
             <div className="flex items-center gap-1">
@@ -303,108 +189,7 @@ const SearchResultCard = ({ course, onClick }) => {
   );
 };
 
-// Mobile Explore Menu Component
-const MobileExploreMenu = ({ 
-  isOpen, 
-  coursesLoading, 
-  getCoursesByCategory, 
-  navigate, 
-  setMenuOpen,
-  onClose 
-}) => {
-  const [activeCategory, setActiveCategory] = useState(null);
-
-  const handleCategoryClick = (category) => {
-    if (activeCategory === category) {
-      setActiveCategory(null);
-    } else {
-      setActiveCategory(category);
-    }
-  };
-
-  const handleViewAll = (category) => {
-    navigate(`/courses?category=${encodeURIComponent(category)}`);
-    onClose();
-    setMenuOpen(false);
-  };
-
-  const handleCourseClick = (course) => {
-    navigate(`/course/${course.id || course._id}`);
-    onClose();
-    setMenuOpen(false);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 mt-2 overflow-hidden">
-      {/* Categories List */}
-      <div className="max-h-80 overflow-y-auto">
-        {Object.keys(exploreCategories).map((category) => (
-          <div key={category} className="border-b border-gray-200 dark:border-gray-700 last:border-0">
-            {/* Category Button */}
-            <button
-              onClick={() => handleCategoryClick(category)}
-              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              <span className="font-medium text-gray-800 dark:text-white">
-                {category}
-              </span>
-              <HiChevronRight 
-                className={`transition-transform ${activeCategory === category ? 'rotate-90' : ''}`}
-              />
-            </button>
-
-            {/* Courses for this category - Collapsible */}
-            {activeCategory === category && (
-              <div className="px-4 pb-3 bg-gray-50 dark:bg-gray-900/50">
-                {coursesLoading ? (
-                  <div className="py-4 text-center">
-                    <div className="inline-block w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Loading courses...</p>
-                  </div>
-                ) : getCoursesByCategory(category).length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 py-3 text-center">
-                    No courses available
-                  </p>
-                ) : (
-                  <>
-                    <ul className="space-y-2 py-2">
-                      {getCoursesByCategory(category).map((course) => (
-                        <li
-                          key={course.id || course._id}
-                          onClick={() => handleCourseClick(course)}
-                          className="cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                        >
-                          <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                            {course.title}
-                          </p>
-                          {course.category && (
-                            <span className="text-xs text-blue-600 dark:text-blue-400 mt-1 inline-block">
-                              {course.category}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                    
-                    <button
-                      onClick={() => handleViewAll(category)}
-                      className="w-full mt-2 py-2 text-sm text-blue-600 dark:text-blue-400 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                    >
-                      View all {category} courses →
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
+/* -------------------- Main Navbar Component -------------------- */
 export default function Navbar() {
   const { isAuthenticated, user, logout, openLogin, openSignup } = useAuth();
   const { favorites } = useFavorites();
@@ -415,13 +200,13 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showExplore, setShowExplore] = useState(false);
-  const [activeCategory, setActiveCategory] = useState(null);
+  const [activeMainCategory, setActiveMainCategory] = useState(null);
+  const [activeSubCategory, setActiveSubCategory] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
   const [allCourses, setAllCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
-  
+
   // Search related states
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -434,6 +219,9 @@ export default function Navbar() {
   // Mobile explore menu state
   const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
 
+  // Timer for hover delay
+  const [exploreTimer, setExploreTimer] = useState(null);
+
   /* ---------------- SCROLL EFFECT ---------------- */
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -445,23 +233,27 @@ export default function Navbar() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Close search with Escape
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         setShowSearchResults(false);
         setSuggestions([]);
       }
       // Search with Enter
-      if (e.key === 'Enter' && searchQuery.trim() && e.target.tagName !== 'TEXTAREA') {
+      if (
+        e.key === "Enter" &&
+        searchQuery.trim() &&
+        e.target.tagName !== "TEXTAREA"
+      ) {
         handleSearch(e);
       }
       // Focus search with Ctrl+K
-      if (e.ctrlKey && e.key === 'k') {
+      if (e.ctrlKey && e.key === "k") {
         e.preventDefault();
-        document.querySelector('.search-input')?.focus();
+        document.querySelector(".search-input")?.focus();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [searchQuery]);
 
   /* ---------------- LOAD COURSES FOR EXPLORE MENU ---------------- */
@@ -488,18 +280,32 @@ export default function Navbar() {
       setPopularTags(tags.slice(0, 10));
     } catch (error) {
       console.error("Failed to load popular tags:", error);
-      setPopularTags(['Java', 'Python', 'React', 'JavaScript', 'Web Development', 'Testing', 'SQL', 'Data Science']);
+      setPopularTags([
+        "Java",
+        "Python",
+        "React",
+        "JavaScript",
+        "Web Development",
+        "Testing",
+        "SQL",
+        "Data Science",
+      ]);
     }
   };
 
-  /* ---------------- FILTER COURSES BY CATEGORY WITH KEYWORDS ---------------- */
-  const getCoursesByCategory = (category) => {
-    if (!category || !allCourses.length) return [];
+  /* ---------------- FILTER COURSES BY SUBCATEGORY WITH KEYWORDS ---------------- */
+  const getCoursesByCategory = (subCategory) => {
+    if (!subCategory || !allCourses.length) return [];
 
-    const categoryData = exploreCategories[category];
-    if (!categoryData) return [];
+    // Find keywords for this subcategory
+    let keywords = [];
+    Object.values(exploreCategories).forEach((mainCat) => {
+      if (mainCat.subcategories && mainCat.subcategories[subCategory]) {
+        keywords = mainCat.subcategories[subCategory].keywords || [];
+      }
+    });
 
-    const keywords = categoryData.keywords || [];
+    if (keywords.length === 0) return [];
 
     const filteredCourses = allCourses.filter((course) => {
       const searchableText = `
@@ -560,7 +366,7 @@ export default function Navbar() {
   const handleSearchInputChange = async (e) => {
     const value = e.target.value;
     setSearchQuery(value);
-    
+
     if (value.trim().length === 0) {
       setShowSearchResults(false);
       setSearchResults([]);
@@ -571,7 +377,7 @@ export default function Navbar() {
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
-    
+
     const timeout = setTimeout(async () => {
       if (value.trim().length > 1) {
         try {
@@ -584,43 +390,42 @@ export default function Navbar() {
       } else {
         setSuggestions([]);
       }
-    }, 300); 
-    
+    }, 300);
+
     setSearchTimeout(timeout);
   };
 
   const handleSearch = async (e) => {
     e.preventDefault();
     const query = searchQuery.trim();
-    
+
     if (!query) {
       setSearchResults([]);
       setShowSearchResults(false);
       setSuggestions([]);
       return;
     }
-    
+
     setLoadingSearch(true);
     const startTime = Date.now();
-    
+
     try {
       const results = await searchCourses(query, user?.id);
       const searchDuration = Date.now() - startTime;
-      
-      // Log search analytics
+
       console.log(`🔍 Search completed in ${searchDuration}ms`, {
         query,
         resultsCount: results.length,
-        userId: user?.id
+        userId: user?.id,
       });
-      
+
       setSearchResults(results);
       setShowSearchResults(true);
       setSuggestions([]);
     } catch (error) {
       console.error("Search failed:", error);
       setSearchResults([]);
-      setShowSearchResults(true); // Show empty state
+      setShowSearchResults(true);
     } finally {
       setLoadingSearch(false);
     }
@@ -629,15 +434,14 @@ export default function Navbar() {
   const handleSuggestionSelect = (suggestion) => {
     setSearchQuery(suggestion);
     setSuggestions([]);
-    
-    // Automatically search for selected suggestion
+
     setLoadingSearch(true);
     searchCourses(suggestion, user?.id)
-      .then(results => {
+      .then((results) => {
         setSearchResults(results);
         setShowSearchResults(true);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("Search failed:", error);
         setSearchResults([]);
         setShowSearchResults(true);
@@ -651,7 +455,7 @@ export default function Navbar() {
     setSearchQuery(tag);
     setLoadingSearch(true);
     setSuggestions([]);
-    
+
     try {
       const results = await searchCourses(tag, user?.id);
       setSearchResults(results);
@@ -682,17 +486,17 @@ export default function Navbar() {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
-        showSearchResults && 
-        !event.target.closest('.search-container') &&
-        !event.target.closest('.search-results-panel')
+        showSearchResults &&
+        !event.target.closest(".search-container") &&
+        !event.target.closest(".search-results-panel")
       ) {
         setShowSearchResults(false);
         setSuggestions([]);
       }
     };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showSearchResults]);
 
   /* ---------------- CLOSE USER MENU ON CLICK OUTSIDE ---------------- */
@@ -713,6 +517,55 @@ export default function Navbar() {
       setMobileExploreOpen(false);
     };
   }, []);
+
+  /* ---------------- IMPROVED EXPLORE HOVER HANDLING ---------------- */
+  const handleExploreMouseEnter = () => {
+    // Clear any existing timer
+    if (exploreTimer) {
+      clearTimeout(exploreTimer);
+      setExploreTimer(null);
+    }
+    
+    // Show explore menu immediately
+    setShowExplore(true);
+  };
+
+  const handleExploreMouseLeave = () => {
+    // Set a delay before closing to allow user to move to menu
+    const timer = setTimeout(() => {
+      if (showExplore) {
+        setShowExplore(false);
+        setActiveMainCategory(null);
+        setActiveSubCategory(null);
+      }
+    }, 150); // 150ms delay for smooth transition
+    
+    setExploreTimer(timer);
+  };
+
+  const handleExploreMenuMouseEnter = () => {
+    // Clear the close timer if user enters the menu
+    if (exploreTimer) {
+      clearTimeout(exploreTimer);
+      setExploreTimer(null);
+    }
+    
+    // Ensure menu stays open
+    setShowExplore(true);
+  };
+
+  const handleExploreMenuMouseLeave = () => {
+    // Close menu immediately when leaving the menu area
+    setShowExplore(false);
+    setActiveMainCategory(null);
+    setActiveSubCategory(null);
+    
+    // Clear any existing timer
+    if (exploreTimer) {
+      clearTimeout(exploreTimer);
+      setExploreTimer(null);
+    }
+  };
 
   return (
     <>
@@ -735,111 +588,34 @@ export default function Navbar() {
               {/* EXPLORE MEGA MENU */}
               <div
                 className="relative"
-                onMouseEnter={() => setShowExplore(true)}
-                onMouseLeave={() => {
-                  setShowExplore(false);
-                  setActiveCategory(null);
-                }}
+                onMouseEnter={handleExploreMouseEnter}
+                onMouseLeave={handleExploreMouseLeave}
               >
                 <button className="font-medium px-2 py-1 text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                   Explore
                 </button>
 
-                {/* MEGA MENU */}
-                <div
-                  className={`absolute left-0 top-full mt-3 bg-white dark:bg-gray-800 shadow-2xl rounded-xl border border-gray-200 dark:border-gray-700 z-50
-                    transition-all duration-200 ${
-                      showExplore
-                        ? "opacity-100 visible translate-y-0"
-                        : "opacity-0 invisible -translate-y-2"
-                    }`}
+                {/* EXPLORE MENU CONTAINER - Added wrapper for better hover handling */}
+                <div 
+                  className="absolute left-0 top-full"
+                  onMouseEnter={handleExploreMenuMouseEnter}
+                  onMouseLeave={handleExploreMenuMouseLeave}
                 >
-                  <div className="flex">
-                    {/* LEFT – MAIN CATEGORIES */}
-                    <ul className="w-[280px] border-r border-gray-200 dark:border-gray-700">
-                      {Object.keys(exploreCategories).map((category) => (
-                        <li
-                          key={category}
-                          onMouseEnter={() => setActiveCategory(category)}
-                          className={`flex items-center justify-between px-5 py-3 cursor-pointer text-sm font-medium
-                            ${
-                              activeCategory === category
-                                ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                                : "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-                            }`}
-                        >
-                          <span>{category}</span>
-                          <HiChevronRight className="text-gray-400 dark:text-gray-500" />
-                        </li>
-                      ))}
-                    </ul>
-
-                    {/* RIGHT – COURSES LIST FROM BACKEND */}
-                    {activeCategory && (
-                      <div className="w-[320px] p-5">
-                        {coursesLoading ? (
-                          <p className="text-sm text-gray-400">
-                            Loading courses...
-                          </p>
-                        ) : (
-                          <>
-                            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">
-                              {activeCategory} Courses (
-                              {getCoursesByCategory(activeCategory).length})
-                            </h3>
-                            <ul className="space-y-3">
-                              {getCoursesByCategory(activeCategory).length ===
-                              0 ? (
-                                <li className="text-sm text-gray-400">
-                                  No courses available for this category
-                                </li>
-                              ) : (
-                                getCoursesByCategory(activeCategory).map(
-                                  (course) => (
-                                    <li
-                                      key={course.id || course._id}
-                                      onClick={() => {
-                                        navigate(
-                                          `/course/${course.id || course._id}`,
-                                        );
-                                        setShowExplore(false);
-                                      }}
-                                      className="cursor-pointer flex justify-between items-center
-                                      text-sm text-gray-700 dark:text-gray-300
-                                      hover:text-blue-600 dark:hover:text-blue-400 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                                    >
-                                      <span className="truncate mr-2">
-                                        {course.title}
-                                      </span>
-                                      <HiChevronRight className="text-gray-300 flex-shrink-0" />
-                                    </li>
-                                  ),
-                                )
-                              )}
-                            </ul>
-                            {getCoursesByCategory(activeCategory).length >
-                              0 && (
-                              <button
-                                onClick={() => {
-                                  navigate(
-                                    `/courses?category=${encodeURIComponent(activeCategory)}`,
-                                  );
-                                  setShowExplore(false);
-                                }}
-                                className="w-full mt-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                              >
-                                View all courses →
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <ExploreMenu
+                    showExplore={showExplore}
+                    setShowExplore={setShowExplore}
+                    activeMainCategory={activeMainCategory}
+                    setActiveMainCategory={setActiveMainCategory}
+                    activeSubCategory={activeSubCategory}
+                    setActiveSubCategory={setActiveSubCategory}
+                    allCourses={allCourses}
+                    coursesLoading={coursesLoading}
+                    navigate={navigate}
+                  />
                 </div>
               </div>
 
-              {/* SEARCH BAR WITH DROPDOWN RESULTS */}
+              {/* SEARCH BAR */}
               <div className="search-container relative flex-1 max-w-xl">
                 <form onSubmit={handleSearch} className="relative">
                   <div className="relative">
@@ -856,7 +632,7 @@ export default function Navbar() {
                     >
                       <FiSearch size={16} />
                     </button>
-                    
+
                     {searchQuery && (
                       <button
                         type="button"
@@ -872,7 +648,7 @@ export default function Navbar() {
                       </button>
                     )}
                   </div>
-                  
+
                   {/* Search Suggestions Dropdown */}
                   {suggestions.length > 0 && (
                     <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 max-h-80 overflow-y-auto">
@@ -889,13 +665,15 @@ export default function Navbar() {
                           className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0 flex items-center gap-3"
                         >
                           <FiSearch className="text-gray-400" size={16} />
-                          <span className="text-gray-700 dark:text-gray-300">{suggestion}</span>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {suggestion}
+                          </span>
                         </button>
                       ))}
                     </div>
                   )}
                 </form>
-                
+
                 {/* Search Results Panel */}
                 {showSearchResults && (
                   <div className="search-results-panel absolute top-full mt-2 w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 max-h-[500px] overflow-hidden">
@@ -906,7 +684,9 @@ export default function Navbar() {
                           Search Results
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {loadingSearch ? "Searching..." : `${searchResults.length} courses found`}
+                          {loadingSearch
+                            ? "Searching..."
+                            : `${searchResults.length} courses found`}
                         </p>
                       </div>
                       <button
@@ -916,7 +696,7 @@ export default function Navbar() {
                         <FiX size={20} />
                       </button>
                     </div>
-                    
+
                     {/* Loading State */}
                     {loadingSearch ? (
                       <div className="p-8 text-center">
@@ -946,13 +726,13 @@ export default function Navbar() {
                             </div>
                           </div>
                         )}
-                        
+
                         {/* Course Results */}
                         <div>
                           {searchResults.map((course) => (
-                            <SearchResultCard 
-                              key={course.id || course._id} 
-                              course={course} 
+                            <SearchResultCard
+                              key={course.id || course._id}
+                              course={course}
                               onClick={handleCourseClick}
                             />
                           ))}
@@ -967,16 +747,23 @@ export default function Navbar() {
                           No courses found
                         </h4>
                         <p className="text-gray-500 dark:text-gray-400 mb-4">
-                          No results for "{searchQuery}". Try different keywords.
+                          No results for "{searchQuery}". Try different
+                          keywords.
                         </p>
-                        
+
                         {/* Search Suggestions */}
                         <div className="mt-4">
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                             Try searching for:
                           </p>
                           <div className="flex flex-wrap justify-center gap-2">
-                            {['Java Programming', 'JavaScript', 'React', 'Python', 'Web Development'].map((suggestion) => (
+                            {[
+                              "Java Programming",
+                              "JavaScript",
+                              "React",
+                              "Python",
+                              "Web Development",
+                            ].map((suggestion) => (
                               <button
                                 key={suggestion}
                                 onClick={() => {
@@ -1218,7 +1005,7 @@ export default function Navbar() {
                     <FiSearch size={18} />
                   </button>
                 </form>
-                
+
                 {/* Mobile Search Results */}
                 {showSearchResults && (
                   <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
@@ -1233,18 +1020,22 @@ export default function Navbar() {
                         <FiX size={20} />
                       </button>
                     </div>
-                    
+
                     {loadingSearch ? (
                       <div className="p-6 text-center">
                         <div className="inline-block w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
-                        <p className="text-gray-600 dark:text-gray-400">Searching...</p>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          Searching...
+                        </p>
                       </div>
                     ) : searchResults.length > 0 ? (
                       <div className="max-h-80 overflow-y-auto">
                         {searchResults.map((course) => (
-                          <div 
+                          <div
                             key={course.id || course._id}
-                            onClick={() => handleCourseClick(course.id || course._id)}
+                            onClick={() =>
+                              handleCourseClick(course.id || course._id)
+                            }
                             className="p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                           >
                             <h5 className="font-medium text-gray-800 dark:text-white">
@@ -1258,7 +1049,10 @@ export default function Navbar() {
                       </div>
                     ) : (
                       <div className="p-6 text-center">
-                        <FiSearch size={32} className="text-gray-400 mx-auto mb-3" />
+                        <FiSearch
+                          size={32}
+                          className="text-gray-400 mx-auto mb-3"
+                        />
                         <h5 className="font-medium text-gray-700 dark:text-gray-300 mb-1">
                           No results found
                         </h5>
@@ -1374,16 +1168,26 @@ export default function Navbar() {
                     )}
                   </Link>
 
-                  {/* MOBILE EXPLORE BUTTON (REPLACED THE LINK) */}
+                  {/* MOBILE EXPLORE BUTTON */}
                   <button
                     onClick={() => setMobileExploreOpen(!mobileExploreOpen)}
                     className="flex items-center justify-between w-full py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                   >
                     <span className="flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
                       </svg>
-                      Explore Courses
+                      Explore
                     </span>
                     {mobileExploreOpen ? <HiChevronDown /> : <HiChevronRight />}
                   </button>
@@ -1450,16 +1254,26 @@ export default function Navbar() {
                 </>
               ) : (
                 <>
-                  {/* MOBILE EXPLORE BUTTON (REPLACED THE LINK) */}
+                  {/* MOBILE EXPLORE BUTTON */}
                   <button
                     onClick={() => setMobileExploreOpen(!mobileExploreOpen)}
                     className="flex items-center justify-between w-full py-3 border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                   >
                     <span className="flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
                       </svg>
-                      Explore Courses
+                      Explore
                     </span>
                     {mobileExploreOpen ? <HiChevronDown /> : <HiChevronRight />}
                   </button>

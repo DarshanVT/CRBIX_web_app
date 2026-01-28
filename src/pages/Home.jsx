@@ -9,6 +9,7 @@ import BuildProject from "../components/Dashbord/BuildProject";
 import TrustedBy from "../components/Dashbord/TrustedBy";
 import Testimonials from "../components/Dashbord/studentSuccess";
 import GetCertified from "../components/Dashbord/CertificationSection";
+import WhatsAppButton from "../whatsapp/WhatsAppButton";
 
 /*  COMPONENT  */
 export default function HomeSections() {
@@ -46,6 +47,7 @@ export default function HomeSections() {
       <TrustedBy />
       <div className="border-t border-gray-300 dark:border-gray-700 my-6"></div>
      <Testimonials /> 
+     <WhatsAppButton />
     </div>
   );
 }

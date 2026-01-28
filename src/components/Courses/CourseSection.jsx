@@ -1,7 +1,7 @@
 import CourseCard from "./CourseCard";
 import { useAuth } from "../Login/AuthContext";
 import { useEffect, useState } from "react";
-import { getCourses} from "../../Api/course.api";
+import { getCourses } from "../../Api/course.api";
 import { useNavigate } from "react-router-dom";
 
 export default function CourseGridSection() {
@@ -71,12 +71,12 @@ export default function CourseGridSection() {
 
   if (loading) {
     return (
-      <section className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12">
+      <section className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 bg-white dark:bg-gray-900 min-h-screen">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="animate-pulse">
               <div className="bg-gray-200 dark:bg-gray-700 h-40 md:h-48 rounded-t-xl"></div>
-              <div className="p-4 space-y-3">
+              <div className="p-4 space-y-3 bg-white dark:bg-gray-800 rounded-b-xl">
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
                 <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
               </div>
@@ -89,12 +89,12 @@ export default function CourseGridSection() {
 
   if (error) {
     return (
-      <section className="max-w-7xl mx-auto px-4 py-12">
+      <section className="max-w-7xl mx-auto px-4 py-12 bg-white dark:bg-gray-900 min-h-screen">
         <div className="text-center py-10">
           <p className="text-red-500 mb-4">{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Retry
           </button>
@@ -104,31 +104,33 @@ export default function CourseGridSection() {
   }
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12">
-      <div className="mb-6 md:mb-10">
-        <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-gray-900 dark:text-white font-bold mb-2 md:mb-3">
-          Skills to transform your career and life
-        </h2>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-          From critical skills to technical topics, explore top courses.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8 lg:gap-10">
-        {courses.map((course) => (
-          <CourseCard
-            key={course.id}
-            course={course}
-            onEnroll={() => handleEnroll(course)}
-          />
-        ))}
-      </div>
-
-      {courses.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <p className="text-gray-400 text-lg">No courses available at the moment.</p>
+    <div className="bg-white dark:bg-gray-900 min-h-screen">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12">
+        <div className="mb-6 md:mb-10">
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-gray-900 dark:text-white font-bold mb-2 md:mb-3">
+            Skills to transform your career and life
+          </h2>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+            From critical skills to technical topics, explore top courses.
+          </p>
         </div>
-      )}
-    </section>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8 lg:gap-10">
+          {courses.map((course) => (
+            <CourseCard
+              key={course.id}
+              course={course}
+              onEnroll={() => handleEnroll(course)}
+            />
+          ))}
+        </div>
+
+        {courses.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <p className="text-gray-400 dark:text-gray-500 text-lg">No courses available at the moment.</p>
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
